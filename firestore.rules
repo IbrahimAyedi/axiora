@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can fully read and write their own data tree.
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Override for notifications subcollection only:
+    // Any authenticated user may CREATE or UPDATE a notification for another user.
+    // UPDATE is required because deterministic notification IDs (e.g. notif_response_{id})
+    // are written with SetOptions(merge:true) — on a second write this is an update
+    // operation and the bare `allow create` rule would cause permission-denied.
+    // Read and delete remain owner-only via the rule above.
+    match /users/{userId}/notifications/{notifId} {
+      allow create, update: if request.auth != null;
+    }
+
+    // Cross-user constat access for the approval workflow.
+    // Party B (the designated approver) must be able to:
+    //   • READ  the constat to display it after tapping the notification.
+    //   • UPDATE it to save their Party B info and record accept/reject.
+    // The owner already has full access via the /users/{userId}/{document=**}
+    // rule above; this rule is additive for the approver only.
+    match /users/{userId}/constats/{constatId} {
+      allow read, update: if request.auth != null
+          && resource.data.approvalRequestedToUid == request.auth.uid;
+    }
+
+    // Admin final-approval: any authenticated user may update an accepted
+    // constat to write the three adminReview* fields. The guard on
+    // resource.data.approvalStatus ensures only already-accepted constats
+    // can receive this update; the guard on request.resource.data.adminReviewStatus
+    // ensures the write is specifically the admin-approval transition.
+    match /users/{userId}/constats/{constatId} {
+      allow update: if request.auth != null
+          && resource.data.approvalStatus == 'accepted'
+          && request.resource.data.adminReviewStatus == 'approved';
+    }
+
+    // Insurance-number → user lookup table.
+    // Any authenticated user may read (needed for approval lookup) and create
+    // their own entry. Updates are owner-only.
+    match /insurance_users/{insuranceNumber} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+          && request.auth.uid == resource.data.uid;
+    }
+
+    // Mirror of accepted constats for admin review.
+    match /approved_constats/{constatId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}

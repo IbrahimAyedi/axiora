@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "636992170474",
+    "project_id": "axiora-63fdc",
+    "storage_bucket": "axiora-63fdc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:636992170474:android:54a8112931f800a1426a93",
+        "android_client_info": {
+          "package_name": "com.example.smart_constat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2_OTXUk1j498Xh7KXjZMEnk5pNe9QGLg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
