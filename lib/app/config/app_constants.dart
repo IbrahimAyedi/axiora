@@ -3,8 +3,8 @@
 abstract final class AppConstants {
   // esm application eli yban fi MaterialApp w UI
 
-  static const appName = 'Smart Constat';
-  static const appTagline = 'Digital vehicle inspection and accident reporting';
+  static const appName = 'Axiora';
+  static const appTagline = 'Votre constat intelligent, rapide et sécurisé.';
   // default language mte3 app
 
   static const defaultLocale = 'en';

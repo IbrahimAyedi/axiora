@@ -1,18 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../app/config/app_constants.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/storage/cache_keys.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../../core/widgets/app_badge.dart';
-import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_input.dart';
 
-// screen mte3 login
-// user yekteb email w password bech ya3mel sign in b FirebaseAuth
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -21,30 +18,19 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // key mte3 form bech nvalidiw inputs
   final _formKey = GlobalKey<FormState>();
-
-  // controller mte3 email input
   final _identifierController = TextEditingController();
-
-  // controller mte3 password input
   final _passwordController = TextEditingController();
 
-  // remember me / stay connected value
   bool _rememberMe = false;
-
-  // true waqt login request yekhdem
   bool _submitting = false;
 
   @override
   void initState() {
     super.initState();
-
-    // nloadiw remember me saved mel local storage
     _loadRememberMe();
   }
 
-  // tloadi remember me value men SharedPreferences
   Future<void> _loadRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
@@ -53,64 +39,50 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    // nfas5ou controllers bech ma ysirch memory leak
     _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  // function mte3 login
   Future<void> _submit() async {
-    // ken form ghalet wala request deja yekhdem, nوقفou
     if (!_formKey.currentState!.validate() || _submitting) return;
-
-    // nbadlou state l submitting
     setState(() => _submitting = true);
 
     try {
-      // Firebase login b email w password
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _identifierController.text.trim(),
         password: _passwordController.text,
       );
 
-      // nsajlou remember me choice localement
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(CacheKeys.rememberMe, _rememberMe);
 
       if (!mounted) return;
-
-      // ken login success, nemchiw lel home
       context.go(RouteNames.homePath);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-
-      // nرجعou button normal
       setState(() => _submitting = false);
 
-      // n7adrou message حسب error code mte3 Firebase
       String message;
       switch (e.code) {
         case 'user-not-found':
-          message = 'No user found for this email.';
+          message = 'Aucun compte trouvé pour cet e-mail.';
           break;
         case 'wrong-password':
-          message = 'Wrong password provided.';
+          message = 'Mot de passe incorrect.';
           break;
         case 'invalid-email':
-          message = 'The email address is invalid.';
+          message = 'Adresse e-mail invalide.';
           break;
         case 'invalid-credential':
-          message = 'Invalid email or password.';
+          message = 'E-mail ou mot de passe incorrect.';
           break;
         default:
-          message = 'Authentication failed. Please try again.';
+          message = 'Connexion échouée. Veuillez réessayer.';
       }
 
-      // nwarriw error fi SnackBar
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -118,243 +90,290 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // ncheckiw dark mode wala light mode
-    final isDark = theme.brightness == Brightness.dark;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // ── Background image ──────────────────────────────────────────
+            Image.asset(
+              'assets/images/bg_auth_axiora.jpeg',
+              fit: BoxFit.cover,
+            ),
 
-    return Scaffold(
-      body: Container(
-        // background: dark simple, light gradient
-        decoration: isDark
-            ? BoxDecoration(color: theme.scaffoldBackgroundColor)
-            : const BoxDecoration(
+            // ── Very soft white/light-blue overlay ────────────────────────
+            Container(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFEBF2FA), Color(0xFFF8FAFD), Colors.white],
+                  colors: [
+                    Color(0x55F4F7FB), // top — 33 %
+                    Color(0x99F4F7FB), // mid — 60 %
+                    Color(0xCCFFFFFF), // bottom — 80 %
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  stops: [0.0, 0.45, 1.0],
+                  stops: [0.0, 0.4, 1.0],
                 ),
               ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Form(
-              // form key lel validation
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 48),
+            ),
 
-                  // ── Brand hero ──────────────────────────────────────────
-                  // partie mte3 logo w app name
-                  Center(
-                    child: Column(
-                      children: [
-                        // icon container mte3 application
-                        Container(
-                          width: 68,
-                          height: 68,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? theme.colorScheme.primary
-                                : const Color(0xFF124170),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    (isDark
-                                            ? theme.colorScheme.primary
-                                            : const Color(0xFF124170))
-                                        .withValues(alpha: 0.4),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
+            // ── Scrollable content ────────────────────────────────────────
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 44),
+
+                      // ── Logo + brand ──────────────────────────────────────
+                      Center(
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.directions_car_outlined,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // app name
-                        Text(
-                          AppConstants.appName,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: isDark
-                                ? theme.colorScheme.onSurface
-                                : const Color(0xFF124170),
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-
-                        // badge sghir mte3 prototype
-                        const AppBadge(label: 'Mobile-only prototype'),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // ── Headline ─────────────────────────────────────────────
-                  // welcome title
-                  Text(
-                    'Welcome back',
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // description ta7t title
-                  Text(
-                    'Sign in to continue your scans, reports, and saved inspection drafts.',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // ── Form card ────────────────────────────────────────────
-                  // card feha email, password, remember me w buttons
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // email input
-                          AppTextInput(
-                            label: 'Email',
-                            hint: 'example@email.com',
-                            controller: _identifierController,
-                            prefixIcon: Icons.person_outline,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) =>
-                                Validators.requiredField(value, label: 'Email'),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // password input
-                          AppTextInput(
-                            label: 'Password',
-                            hint: 'Enter your password',
-                            controller: _passwordController,
-                            obscureText: true,
-                            prefixIcon: Icons.lock_outline,
-                            validator: Validators.password,
-                          ),
-                          const SizedBox(height: 6),
-
-                          // forgot password button placeholder
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 4,
-                                ),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              onPressed: () {},
-                              child: Text(
-                                'Forgot password?',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: theme.colorScheme.primary,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(18),
+                                child: Image.asset(
+                                  'assets/images/logo.png',
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-
-                          // stay connected checkbox
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: _rememberMe,
-                                onChanged: (v) =>
-                                    setState(() => _rememberMe = v ?? false),
-                                visualDensity: VisualDensity.compact,
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
+                            const SizedBox(height: 12),
+                            Text(
+                              'Axiora',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.2,
                               ),
-                              GestureDetector(
-                                onTap: () =>
-                                    setState(() => _rememberMe = !_rememberMe),
-                                child: Text(
-                                  'Stay connected',
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-
-                          // sign in button
-                          AppButton(
-                            label: _submitting ? 'Signing in...' : 'Sign in',
-                            icon: Icons.arrow_forward_rounded,
-                            onPressed: _submitting ? null : _submit,
-                          ),
-                          const SizedBox(height: 10),
-
-                          // divider "or"
-                          Row(
-                            children: [
-                              const Expanded(child: Divider()),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: Text(
-                                  'or',
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                              ),
-                              const Expanded(child: Divider()),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                          // button yemchi lel register screen
-                          AppButton(
-                            label: 'Create an account',
-                            variant: AppButtonVariant.secondary,
-                            onPressed: () =>
-                                context.push(RouteNames.registerPath),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Disclaimer ───────────────────────────────────────────
-                  // text sghir yوضح auth provider
-                  Center(
-                    child: Text(
-                      'Powered by Firebase Authentication.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.5,
+                            ),
+                          ],
                         ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
+
+                      const SizedBox(height: 28),
+
+                      // ── Auth card ─────────────────────────────────────────
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF0B2D4D,
+                              ).withValues(alpha: 0.07),
+                              blurRadius: 28,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(28),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Title
+                            Text(
+                              'Bienvenue',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Subtitle
+                            Text(
+                              'Connectez-vous à votre espace Axiora.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Email
+                            AppTextInput(
+                              label: 'Email',
+                              hint: 'exemple@email.com',
+                              controller: _identifierController,
+                              prefixIcon: Icons.person_outline,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) => Validators.requiredField(
+                                value,
+                                label: 'Email',
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Password
+                            AppTextInput(
+                              label: 'Mot de passe',
+                              hint: 'Votre mot de passe',
+                              controller: _passwordController,
+                              obscureText: true,
+                              prefixIcon: Icons.lock_outline,
+                              validator: Validators.password,
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Forgot password
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () {},
+                                child: Text(
+                                  'Mot de passe oublié ?',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: AppColors.trustBlue,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+
+                            // Remember me
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: _rememberMe,
+                                  onChanged: (v) =>
+                                      setState(() => _rememberMe = v ?? false),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  activeColor: AppColors.primary,
+                                ),
+                                GestureDetector(
+                                  onTap: () => setState(
+                                    () => _rememberMe = !_rememberMe,
+                                  ),
+                                  child: Text(
+                                    'Rester connecté',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Se connecter — gradient button, no icon
+                            SizedBox(
+                              height: 54,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: _submitting
+                                        ? [
+                                            const Color(0xFFB0BEC5),
+                                            const Color(0xFF90A4AE),
+                                          ]
+                                        : [
+                                            const Color(0xFF1769AA),
+                                            const Color(0xFF0B2D4D),
+                                          ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: _submitting ? null : _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    shadowColor: Colors.transparent,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _submitting ? 'Connexion…' : 'Se connecter',
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Inline link → register
+                            Center(
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    "Vous n'avez pas de compte ? ",
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => context.push(
+                                      RouteNames.registerPath,
+                                    ),
+                                    child: Text(
+                                      'Créer un compte',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.trustBlue,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

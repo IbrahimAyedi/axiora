@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/models/app_notification.dart';
 import '../../../../core/providers/notifications_provider.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -309,21 +310,21 @@ class _NotificationCard extends StatelessWidget {
   Color _getTypeColor(String type, bool isDark) {
     switch (type) {
       case 'success':
-        return isDark ? Colors.green.shade300 : Colors.green;
+        return isDark ? const Color(0xFF81C784) : AppColors.success;
       case 'warning':
-        return isDark ? Colors.orange.shade300 : Colors.orange;
+        return isDark ? const Color(0xFFFFB74D) : AppColors.warning;
       case 'error':
-        return isDark ? Colors.red.shade300 : Colors.red;
+        return isDark ? const Color(0xFFEF9A9A) : AppColors.error;
       case 'constat':
-        return isDark ? Colors.blue.shade300 : Colors.blue;
+        return isDark ? const Color(0xFF64B5F6) : AppColors.trustBlue;
       case 'constat_request':
-        return isDark ? Colors.blue.shade300 : Colors.blue;
+        return isDark ? const Color(0xFF64B5F6) : AppColors.trustBlue;
       case 'constat_response':
-        return isDark ? Colors.green.shade300 : Colors.green;
+        return isDark ? const Color(0xFF81C784) : AppColors.success;
       case 'admin_approval':
-        return isDark ? Colors.indigo.shade300 : Colors.indigo;
+        return isDark ? const Color(0xFF38BDF8) : AppColors.primary;
       default:
-        return isDark ? Colors.grey.shade300 : Colors.grey;
+        return isDark ? const Color(0xFFB0BEC5) : AppColors.textSecondary;
     }
   }
 

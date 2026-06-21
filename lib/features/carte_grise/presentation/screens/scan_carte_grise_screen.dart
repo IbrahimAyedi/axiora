@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/providers/ocr_provider.dart';
 import '../../../../core/providers/app_session_provider.dart';
 import '../../../../core/services/ocr_text_cleaner.dart';
@@ -56,14 +57,15 @@ class _ScanCarteGriseScreenState extends ConsumerState<ScanCarteGriseScreen> {
           Container(
             height: 240,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(28),
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(24),
             ),
 
             // ken image selected, nwarriwha
             child: _selectedImage != null
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(24),
                     child: Image.file(
                       _selectedImage!,
                       fit: BoxFit.cover,
@@ -75,13 +77,25 @@ class _ScanCarteGriseScreenState extends ConsumerState<ScanCarteGriseScreen> {
                 : const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.document_scanner_outlined, size: 52),
+                      Icon(
+                        Icons.document_scanner_outlined,
+                        size: 52,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(height: 12),
-                      Text('No image selected'),
+                      Text('Aucune image selectionnee'),
                       SizedBox(height: 8),
-                      Text('Capture or import a registration card image'),
+                      Text('Placez le document dans le cadre.'),
                     ],
                   ),
+          ),
+          const SizedBox(height: 16),
+
+          const SectionCard(
+            icon: Icons.crop_free_outlined,
+            title: 'Instruction',
+            subtitle: 'Placez le document dans le cadre.',
+            child: Text('Cadrez toute la carte grise avant de lancer l\'OCR.'),
           ),
           const SizedBox(height: 16),
 
@@ -101,7 +115,7 @@ class _ScanCarteGriseScreenState extends ConsumerState<ScanCarteGriseScreen> {
               // pick image from gallery
               Expanded(
                 child: AppButton(
-                  label: 'Gallery',
+                  label: 'Galerie',
                   variant: AppButtonVariant.secondary,
                   icon: Icons.photo_library_outlined,
                   onPressed: _isProcessing ? null : () => _pickImage(false),

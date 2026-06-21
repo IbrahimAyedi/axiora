@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/models/ocr_result.dart';
 import '../../../../core/providers/app_session_provider.dart';
 import '../../../../core/providers/ocr_provider.dart';
@@ -233,13 +234,10 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return AppPageScaffold(
-      // title mte3 page
-      title: 'Vehicle information',
-
-      // subtitle mte3 page
-      subtitle: 'Step 3 of 8',
-
-      // body mte3 page
+      title: 'Véhicule',
+      subtitle: 'Informations véhicule',
+      currentStep: 4,
+      totalSteps: 8,
       body: Form(
         key: _formKey,
         child: Column(
@@ -266,14 +264,13 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen> {
 
                   // title
                   Text(
-                    'Vehicle information',
+                    'Véhicule',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 10),
 
-                  // description
                   Text(
-                    'Use this step to gather registration, vehicle identity, and ownership details before documenting visible impact.',
+                    'Renseignez les informations du véhicule : immatriculation, marque, modèle et numéro VIN.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -283,19 +280,17 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen> {
 
             // checklist mte3 step
             const SectionCard(
-              title: 'Checklist',
-              subtitle: 'Keep the draft moving with the essentials below',
+              title: 'Préparez ces éléments',
+              subtitle: 'Essentiels pour avancer dans la déclaration',
               child: Column(
                 children: [
                   _ChecklistRow(
-                    'Note the registration and make or model details.',
+                    'Immatriculation, marque et modèle du véhicule.',
                   ),
                   _ChecklistRow(
-                    'Collect ownership or policy references tied to the vehicle.',
+                    'Références de propriété ou de contrat liées au véhicule.',
                   ),
-                  _ChecklistRow(
-                    'Prepare the draft for the photo and damage evidence stage.',
-                  ),
+                  _ChecklistRow('Prêt pour l\'étape photos et dégâts.'),
                 ],
               ),
             ),
@@ -303,71 +298,69 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen> {
 
             // section mte3 vehicle details
             SectionCard(
-              title: 'Vehicle details',
-              subtitle:
-                  'Prefilled from your saved vehicle profile when available',
+              title: 'Informations véhicule',
+              subtitle: 'Pré-rempli depuis votre profil véhicule sauvegardé',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // button scan carte grise b OCR
-                  AppButton(
-                    label: _isScanningCarteGrise
-                        ? 'Scanning carte grise...'
-                        : 'Scan carte grise',
-                    icon: Icons.document_scanner_outlined,
-                    variant: AppButtonVariant.secondary,
+                  _DocumentScanCard(
+                    title: 'Carte grise',
+                    subtitle:
+                        'Scanner le document pour preremplir le vehicule.',
+                    isScanned:
+                        _plateNumberController.text.trim().isNotEmpty ||
+                        _vinController.text.trim().isNotEmpty,
+                    isScanning: _isScanningCarteGrise,
                     onPressed: _isScanningCarteGrise
                         ? null
                         : _chooseCarteGriseImageSource,
                   ),
 
-                  // loading indicator waqt scan
                   if (_isScanningCarteGrise) ...[
                     const SizedBox(height: 12),
                     const LinearProgressIndicator(),
                     const SizedBox(height: 8),
                     Text(
-                      'Processing carte grise image...',
+                      'Traitement de la carte grise...',
                       style: Theme.of(context).textTheme.bodySmall,
                       textAlign: TextAlign.center,
                     ),
                   ],
                   const SizedBox(height: 16),
 
-                  // plate number input
                   AppTextInput(
-                    label: 'Plate number',
+                    label: 'Immatriculation',
                     controller: _plateNumberController,
-                    validator: (value) =>
-                        Validators.requiredField(value, label: 'Plate number'),
+                    validator: (value) => Validators.requiredField(
+                      value,
+                      label: 'Immatriculation',
+                    ),
                   ),
                   const SizedBox(height: 16),
 
-                  // brand w model fi nafs row
                   Row(
                     children: [
                       Expanded(
                         child: AppTextInput(
-                          label: 'Brand',
+                          label: 'Marque',
                           controller: _brandController,
                           validator: (value) =>
-                              Validators.requiredField(value, label: 'Brand'),
+                              Validators.requiredField(value, label: 'Marque'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: AppTextInput(
-                          label: 'Model',
+                          label: 'Modèle',
                           controller: _modelController,
                           validator: (value) =>
-                              Validators.requiredField(value, label: 'Model'),
+                              Validators.requiredField(value, label: 'Modèle'),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
 
-                  // VIN input
                   AppTextInput(
                     label: 'VIN',
                     controller: _vinController,
@@ -379,23 +372,20 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen> {
             ),
             const SizedBox(height: 16),
 
-            // section mte3 next action
             SectionCard(
-              title: 'Next action',
+              title: 'Actions',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // save vehicle info w continue
                   AppButton(
-                    label: 'Continue to insurance details',
+                    label: 'Continuer vers l\'assurance',
                     icon: Icons.arrow_forward_rounded,
                     onPressed: _continueToInsurance,
                   ),
                   const SizedBox(height: 12),
 
-                  // back lel driver details
                   AppButton(
-                    label: 'Back to driver details',
+                    label: 'Retour aux informations conducteur',
                     icon: Icons.arrow_back_rounded,
                     variant: AppButtonVariant.secondary,
                     onPressed: () => context.push(RouteNames.driverInfoPath),
@@ -404,6 +394,132 @@ class _VehicleInfoScreenState extends ConsumerState<VehicleInfoScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentScanCard extends StatelessWidget {
+  const _DocumentScanCard({
+    required this.title,
+    required this.subtitle,
+    required this.isScanned,
+    required this.isScanning,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool isScanned;
+  final bool isScanning;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final statusColor = isScanned ? AppColors.success : AppColors.trustBlue;
+    final statusBackground = isScanned
+        ? AppColors.successLight
+        : AppColors.primaryLight;
+
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.directions_car_filled_outlined,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _ScanStatusChip(
+                      label: isScanned ? 'Scanne' : 'Non scanne',
+                      color: statusColor,
+                      background: statusBackground,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              isScanning
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    )
+                  : const Icon(
+                      Icons.document_scanner_outlined,
+                      color: AppColors.primary,
+                    ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScanStatusChip extends StatelessWidget {
+  const _ScanStatusChip({
+    required this.label,
+    required this.color,
+    required this.background,
+  });
+
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -425,14 +541,13 @@ class _CarteGriseSourceSheet extends StatelessWidget {
             // camera option
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take photo'),
+              title: const Text('Prendre une photo'),
               onTap: () => Navigator.of(context).pop(ImageSource.camera),
             ),
 
-            // gallery option
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
+              title: const Text('Choisir depuis la galerie'),
               onTap: () => Navigator.of(context).pop(ImageSource.gallery),
             ),
           ],

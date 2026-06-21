@@ -48,13 +48,10 @@ class ConstatReviewScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return AppPageScaffold(
-      // title mte3 page
-      title: 'Review draft',
-
-      // subtitle mte3 page
-      subtitle: 'Step 6 of 8',
-
-      // body mte3 page
+      title: 'Vérification',
+      subtitle: 'Vérification du brouillon',
+      currentStep: 7,
+      totalSteps: 8,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -92,18 +89,16 @@ class ConstatReviewScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // title
                 Text(
-                  'Review draft',
+                  'Vérification du brouillon',
                   style: theme.textTheme.headlineSmall?.copyWith(
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 10),
 
-                // description
                 Text(
-                  'Review the assembled declaration before collecting confirmation and signature details from the involved parties.',
+                  'Vérifiez la déclaration assemblée avant de recueillir la confirmation et la signature des parties impliquées.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
@@ -115,22 +110,21 @@ class ConstatReviewScreen extends ConsumerWidget {
 
           // section mte3 accident info
           SectionCard(
-            title: 'Accident info',
+            title: 'Informations accident',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _ReviewRow(
-                  'Date and time',
+                  'Date et heure',
                   _formatDateTime(constat?.accidentDateTime),
                 ),
-                _ReviewRow('Location', constat?.accidentLocation ?? '--'),
+                _ReviewRow('Lieu', constat?.accidentLocation ?? '--'),
                 _ReviewLongBlock('Description', constat?.accidentDescription ?? '--'),
 
-                // ken fama entities extracted mel description, nwarriwhom
                 if (constat?.extractedEntities != null &&
                     constat!.extractedEntities!.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text('Detected details:', style: theme.textTheme.labelMedium),
+                  Text('Détails détectés :', style: theme.textTheme.labelMedium),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -159,30 +153,30 @@ class ConstatReviewScreen extends ConsumerWidget {
 
           // section mte3 driver info
           SectionCard(
-            title: 'Driver info',
+            title: 'Conducteur',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _ReviewRow(
-                  'Full name',
+                  'Nom complet',
                   (constat?.driverSnapshot?['fullName'] as String?) ??
                       driver?.fullName ??
                       '--',
                 ),
                 _ReviewRow(
-                  'License number',
+                  'Numéro de permis',
                   (constat?.driverSnapshot?['licenseNumber'] as String?) ??
                       driver?.licenseNumber ??
                       '--',
                 ),
                 _ReviewRow(
-                  'CIN / National ID',
+                  'CIN / Carte nationale',
                   (constat?.driverSnapshot?['nationalId'] as String?) ??
                       driver?.nationalId ??
                       '--',
                 ),
                 _ReviewRow(
-                  'Phone number',
+                  'Téléphone',
                   (constat?.driverSnapshot?['phoneNumber'] as String?) ??
                       driver?.phoneNumber ??
                       '--',
@@ -194,24 +188,24 @@ class ConstatReviewScreen extends ConsumerWidget {
 
           // section mte3 vehicle info
           SectionCard(
-            title: 'Vehicle info',
+            title: 'Véhicule',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _ReviewRow(
-                  'Plate number',
+                  'Immatriculation',
                   (constat?.vehicleSnapshot?['plateNumber'] as String?) ??
                       vehicle?.plateNumber ??
                       '--',
                 ),
                 _ReviewRow(
-                  'Brand',
+                  'Marque',
                   (constat?.vehicleSnapshot?['brand'] as String?) ??
                       vehicle?.brand ??
                       '--',
                 ),
                 _ReviewRow(
-                  'Model',
+                  'Modèle',
                   (constat?.vehicleSnapshot?['model'] as String?) ??
                       vehicle?.model ??
                       '--',
@@ -229,12 +223,12 @@ class ConstatReviewScreen extends ConsumerWidget {
 
           // section mte3 insurance Party A
           SectionCard(
-            title: 'My insurance (Party A)',
+            title: 'Mon assurance (Partie A)',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _ReviewRow(
-                  'Insurance number',
+                  'Numéro d\'assurance',
                   (constat?.partyAInsuranceSnapshot?['insuranceNumber']
                           as String?) ??
                       (constat?.insuranceSnapshot?['insuranceNumber']
@@ -243,7 +237,7 @@ class ConstatReviewScreen extends ConsumerWidget {
                       '--',
                 ),
                 _ReviewRow(
-                  'Company name',
+                  'Compagnie',
                   (constat?.partyAInsuranceSnapshot?['companyName']
                           as String?) ??
                       (constat?.insuranceSnapshot?['companyName'] as String?) ??
@@ -251,7 +245,7 @@ class ConstatReviewScreen extends ConsumerWidget {
                       '--',
                 ),
                 _ReviewRow(
-                  'Policy holder',
+                  'Souscripteur',
                   (constat?.partyAInsuranceSnapshot?['policyHolderName']
                           as String?) ??
                       (constat?.insuranceSnapshot?['policyHolderName']
@@ -260,7 +254,7 @@ class ConstatReviewScreen extends ConsumerWidget {
                       '--',
                 ),
                 _ReviewRow(
-                  'Policy type',
+                  'Type de contrat',
                   (constat?.partyAInsuranceSnapshot?['policyType']
                           as String?) ??
                       (constat?.insuranceSnapshot?['policyType'] as String?) ??
@@ -292,7 +286,7 @@ class ConstatReviewScreen extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Your insurance number is required before submission',
+                            'Votre numéro d\'assurance est requis avant la soumission',
                             style: TextStyle(
                               color: Colors.red.shade900,
                               fontWeight: FontWeight.w500,
@@ -311,30 +305,30 @@ class ConstatReviewScreen extends ConsumerWidget {
           if (constat?.partyBTargetInsuranceSnapshot != null) ...[
             const SizedBox(height: 16),
             SectionCard(
-              title: 'Other party insurance',
+              title: 'Assurance autre partie',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ReviewRow(
-                    'Insurance number',
+                    'Numéro d\'assurance',
                     (constat?.partyBTargetInsuranceSnapshot?['insuranceNumber']
                             as String?) ??
                         '--',
                   ),
                   _ReviewRow(
-                    'Company name',
+                    'Compagnie',
                     (constat?.partyBTargetInsuranceSnapshot?['companyName']
                             as String?) ??
                         '--',
                   ),
                   _ReviewRow(
-                    'Policy holder',
+                    'Souscripteur',
                     (constat?.partyBTargetInsuranceSnapshot?['policyHolderName']
                             as String?) ??
                         '--',
                   ),
                   _ReviewRow(
-                    'Policy type',
+                    'Type de contrat',
                     (constat?.partyBTargetInsuranceSnapshot?['policyType']
                             as String?) ??
                         '--',
@@ -347,17 +341,17 @@ class ConstatReviewScreen extends ConsumerWidget {
 
           // section mte3 draft status
           SectionCard(
-            title: 'Draft status',
+            title: 'Statut du brouillon',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _ReviewRow(
-                  'Constat status',
+                  'Statut',
                   _statusLabel(constat?.status ?? ConstatStatus.draft),
                 ),
-                _ReviewRow('Linked photos / scans', linkedScanCount.toString()),
+                _ReviewRow('Photos / scans liés', linkedScanCount.toString()),
                 _ReviewRow(
-                  'Latest scan',
+                  'Dernier scan',
                   session.activeScan?.scanType.value ?? '--',
                 ),
               ],
@@ -368,7 +362,7 @@ class ConstatReviewScreen extends ConsumerWidget {
           // cost estimation section — shown only when damage scans carry AI data
           if (CostEstimationSummary.hasData(photoScans)) ...[
             SectionCard(
-              title: 'Damage & cost estimate',
+              title: 'Estimation des dégâts',
               child: CostEstimationSummary(photoScans: photoScans),
             ),
             const SizedBox(height: 16),
@@ -376,22 +370,20 @@ class ConstatReviewScreen extends ConsumerWidget {
 
           // section mte3 next action
           SectionCard(
-            title: 'Next action',
+            title: 'Actions',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // continue lel signature step
                 AppButton(
-                  label: 'Continue to signature',
+                  label: 'Continuer vers la signature',
                   icon: Icons.arrow_forward_rounded,
                   onPressed: () =>
                       context.push(RouteNames.constatSignaturePath),
                 ),
                 const SizedBox(height: 12),
 
-                // back lel photos/damage step
                 AppButton(
-                  label: 'Back to photos and damage',
+                  label: 'Retour aux photos et dégâts',
                   icon: Icons.arrow_back_rounded,
                   variant: AppButtonVariant.secondary,
                   onPressed: () => context.push(RouteNames.photosDamagePath),
@@ -492,8 +484,8 @@ String _formatDateTime(DateTime? value) {
 // t7awel constat status l label readable
 String _statusLabel(ConstatStatus status) {
   return switch (status) {
-    ConstatStatus.draft => 'Draft',
-    ConstatStatus.submitted => 'Submitted',
+    ConstatStatus.draft => 'Brouillon',
+    ConstatStatus.submitted => 'Soumis',
   };
 }
 

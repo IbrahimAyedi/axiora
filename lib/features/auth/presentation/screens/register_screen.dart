@@ -1,18 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/storage/cache_keys.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../../core/widgets/app_badge.dart';
-import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_input.dart';
 
-// screen mte3 register
-// user y3abi personal info w ya3mel account b FirebaseAuth
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -21,10 +19,8 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // key mte3 form bech nvalidiw inputs
   final _formKey = GlobalKey<FormState>();
 
-  // controllers mte3 form fields
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -33,9 +29,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  bool _submitting = false;
+
   @override
   void dispose() {
-    // nfas5ou controllers bech ma ysirch memory leak
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
@@ -46,51 +43,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  // function mte3 account creation
-  Future<void> _submit() async {
-    // ken form ghalet, nوقفou
-    if (!_formKey.currentState!.validate()) return;
+  // ── Business logic — unchanged ────────────────────────────────────────────
 
-    // insurance number eli user ktebou
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate() || _submitting) return;
+    if (mounted) setState(() => _submitting = true);
+
     final insuranceNumber = _insuranceNumberController.text.trim();
 
     try {
-      // Check if insurance number is already registered
-      // nverifiw ken insurance number deja mawjoud fi insurance_users
       final insuranceDoc = await FirebaseFirestore.instance
           .collection('insurance_users')
           .doc(insuranceNumber)
           .get();
 
-      // ken insurance number deja mawjoud, nوقفou registration
       if (insuranceDoc.exists) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Insurance number already registered.'),
+            content: Text("Ce numéro d'assurance est déjà enregistré."),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
 
-      // creation mte3 user fi FirebaseAuth b email w password
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
 
-      // uid mte3 user jdid
       final uid = userCredential.user!.uid;
-
-      // full name men first name + last name
       final fullName =
           '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
               .trim();
 
-      // Create user document
-      // nsajlou profile mte3 user fi collection users
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'uid': uid,
         'firstName': _firstNameController.text.trim(),
@@ -105,9 +93,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Create insurance_users lookup document
-      // lookup table: insurance number -> uid
-      // nesta3mlouha bech nlawejou 3la User B b insurance number
       await FirebaseFirestore.instance
           .collection('insurance_users')
           .doc(insuranceNumber)
@@ -119,296 +104,455 @@ class _RegisterScreenState extends State<RegisterScreen> {
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-      // nsavew rememberMe true localement
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(CacheKeys.rememberMe, true);
 
       if (!mounted) return;
-
-      // ba3d registration success, nemchiw lel home
       context.go(RouteNames.homePath);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
-      // n7adrou message حسب FirebaseAuth error code
       String message;
       switch (e.code) {
         case 'email-already-in-use':
-          message = 'An account already exists for this email.';
+          message = 'Un compte existe déjà pour cet e-mail.';
           break;
         case 'weak-password':
-          message = 'The password is too weak.';
+          message = 'Le mot de passe est trop faible.';
           break;
         case 'invalid-email':
-          message = 'The email address is invalid.';
+          message = 'Adresse e-mail invalide.';
           break;
         default:
-          message = 'Registration failed. Please try again.';
+          message = 'Inscription échouée. Veuillez réessayer.';
       }
 
-      // nwarriw error fi SnackBar
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
       if (!mounted) return;
-
-      // error general ken Firestore wala creation profile tfشل
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to create user profile. Please try again.'),
+          content: Text('Impossible de créer le profil. Veuillez réessayer.'),
         ),
       );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
+
+  // ── UI ────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // ncheckiw dark mode wala light mode
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Scaffold(
-      // background color حسب theme
-      backgroundColor: isDark
-          ? theme.scaffoldBackgroundColor
-          : const Color(0xFFF3F6FB),
-
-      // appbar fih back button
-      appBar: AppBar(
-        leading: const BackButton(),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
       ),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // ── Background image ────────────────────────────────────────────
+            Image.asset(
+              'assets/images/bg_auth_axiora.jpeg',
+              fit: BoxFit.cover,
+            ),
 
-      // body mte3 register screen
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 4, 24, 32),
-          child: Form(
-            // form key lel validation
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header ──────────────────────────────────────────────
-                // badge mte3 new account
-                const AppBadge(label: 'New account'),
-                const SizedBox(height: 14),
-
-                // title mte3 screen
-                Text(
-                  'Create your workspace',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                  ),
+            // ── Soft light overlay ──────────────────────────────────────────
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0x80F4F7FB), // top — 50 %
+                    Color(0xBBF4F7FB), // mid — 73 %
+                    Color(0xDDFFFFFF), // bottom — 87 %
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.45, 1.0],
                 ),
-                const SizedBox(height: 8),
+              ),
+            ),
 
-                // description sghira
-                Text(
-                  'Set up your account now and connect real authentication later.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
+            // ── Scrollable content ──────────────────────────────────────────
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── Back row ──────────────────────────────────────────
+                      _BackButton(onTap: () => context.pop()),
+                      const SizedBox(height: 24),
 
-                const SizedBox(height: 28),
+                      // ── Logo ─────────────────────────────────────────────
+                      Center(
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.12),
+                                blurRadius: 14,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
 
-                // ── Personal info section ────────────────────────────────
-                // section mte3 personal info
-                _SectionLabel(
-                  icon: Icons.badge_outlined,
-                  label: 'Personal info',
-                ),
-                const SizedBox(height: 10),
+                      // ── Page header (outside card) ────────────────────────
+                      Text(
+                        'Créer votre espace Axiora',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Quelques informations suffisent pour préparer vos constats.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-                // card fih personal info inputs
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        // first name w last name fi nafs row
-                        Row(
+                      // ── Form card ─────────────────────────────────────────
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              blurRadius: 32,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Expanded(
-                              child: AppTextInput(
-                                label: 'First name',
-                                controller: _firstNameController,
-                                prefixIcon: Icons.badge_outlined,
-                                validator: (value) => Validators.requiredField(
-                                  value,
-                                  label: 'First name',
+                            // ── Section 1: Informations personnelles ──────────
+                            const _SectionHeader(
+                              icon: Icons.person_outline_rounded,
+                              label: 'Informations personnelles',
+                            ),
+                            const SizedBox(height: 14),
+
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AppTextInput(
+                                    label: 'Prénom',
+                                    controller: _firstNameController,
+                                    validator: (v) => Validators.requiredField(
+                                      v,
+                                      label: 'Prénom',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: AppTextInput(
+                                    label: 'Nom',
+                                    controller: _lastNameController,
+                                    validator: (v) => Validators.requiredField(
+                                      v,
+                                      label: 'Nom',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+
+                            AppTextInput(
+                              label: 'Téléphone',
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              prefixIcon: Icons.phone_outlined,
+                              hint: '+216 00 000 000',
+                              validator: Validators.phone,
+                            ),
+                            const SizedBox(height: 12),
+
+                            AppTextInput(
+                              label: 'Email',
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              prefixIcon: Icons.email_outlined,
+                              hint: 'exemple@email.com',
+                              validator: Validators.email,
+                            ),
+
+                            // ── Section 2: Assurance ──────────────────────────
+                            const _SectionDivider(),
+
+                            const _SectionHeader(
+                              icon: Icons.shield_outlined,
+                              label: 'Assurance',
+                            ),
+                            const SizedBox(height: 14),
+
+                            AppTextInput(
+                              label: "Numéro d'assurance",
+                              controller: _insuranceNumberController,
+                              prefixIcon: Icons.badge_outlined,
+                              hint: 'INS-2026-0001',
+                              validator: (v) => Validators.requiredField(
+                                v,
+                                label: "Numéro d'assurance",
+                              ),
+                            ),
+
+                            // ── Section 3: Sécurité du compte ─────────────────
+                            const _SectionDivider(),
+
+                            const _SectionHeader(
+                              icon: Icons.lock_outline_rounded,
+                              label: 'Sécurité du compte',
+                            ),
+                            const SizedBox(height: 14),
+
+                            AppTextInput(
+                              label: 'Mot de passe',
+                              controller: _passwordController,
+                              obscureText: true,
+                              prefixIcon: Icons.lock_outline,
+                              validator: Validators.password,
+                            ),
+                            const SizedBox(height: 12),
+
+                            AppTextInput(
+                              label: 'Confirmer le mot de passe',
+                              controller: _confirmPasswordController,
+                              obscureText: true,
+                              prefixIcon: Icons.lock_reset_outlined,
+                              validator: (v) => Validators.confirmPassword(
+                                v,
+                                _passwordController.text,
+                              ),
+                            ),
+
+                            const SizedBox(height: 28),
+
+                            // ── Primary action ────────────────────────────────
+                            SizedBox(
+                              height: 54,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: _submitting
+                                        ? [
+                                            const Color(0xFFB0BEC5),
+                                            const Color(0xFF90A4AE),
+                                          ]
+                                        : [
+                                            const Color(0xFF1769AA),
+                                            const Color(0xFF0B2D4D),
+                                          ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: _submitting ? null : _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    shadowColor: Colors.transparent,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _submitting
+                                        ? 'Création…'
+                                        : 'Créer mon compte',
+                                  ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: AppTextInput(
-                                label: 'Last name',
-                                controller: _lastNameController,
-                                validator: (value) => Validators.requiredField(
-                                  value,
-                                  label: 'Last name',
-                                ),
+                            const SizedBox(height: 20),
+
+                            // ── Inline link → login ───────────────────────────
+                            Center(
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    'Déjà un compte ? ',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => context.pop(),
+                                    child: Text(
+                                      'Se connecter',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.trustBlue,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                      ),
 
-                        // phone input
-                        AppTextInput(
-                          label: 'Phone',
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          prefixIcon: Icons.phone_outlined,
-                          hint: '+216 00 000 000',
-                          validator: Validators.phone,
-                        ),
-                        const SizedBox(height: 12),
-
-                        // insurance number input
-                        AppTextInput(
-                          label: 'Insurance number',
-                          controller: _insuranceNumberController,
-                          prefixIcon: Icons.shield_outlined,
-                          hint: 'INS-2026-0001',
-                          validator: (value) => Validators.requiredField(
-                            value,
-                            label: 'Insurance number',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // email input
-                        AppTextInput(
-                          label: 'Email',
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          prefixIcon: Icons.email_outlined,
-                          hint: 'example@email.com',
-                          validator: Validators.email,
-                        ),
-                      ],
-                    ),
+                      const SizedBox(height: 32),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 20),
-
-                // ── Security section ─────────────────────────────────────
-                // section mte3 security/password
-                _SectionLabel(icon: Icons.lock_outline, label: 'Security'),
-                const SizedBox(height: 10),
-
-                // card fih password inputs
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        // password input
-                        AppTextInput(
-                          label: 'Password',
-                          controller: _passwordController,
-                          obscureText: true,
-                          prefixIcon: Icons.lock_outline,
-                          validator: Validators.password,
-                        ),
-                        const SizedBox(height: 12),
-
-                        // confirm password input
-                        AppTextInput(
-                          label: 'Confirm password',
-                          controller: _confirmPasswordController,
-                          obscureText: true,
-                          prefixIcon: Icons.lock_reset_outlined,
-                          validator: (value) => Validators.confirmPassword(
-                            value,
-                            _passwordController.text,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // ── Actions ──────────────────────────────────────────────
-                // create account button
-                AppButton(
-                  label: 'Create account',
-                  icon: Icons.person_add_alt_1,
-                  onPressed: _submit,
-                ),
-                const SizedBox(height: 10),
-
-                // back to sign in button
-                AppButton(
-                  label: 'Back to sign in',
-                  variant: AppButtonVariant.secondary,
-                  onPressed: () => context.pop(),
-                ),
-
-                const SizedBox(height: 20),
-
-                // footer text
-                Center(
-                  child: Text(
-                    'Powered by Firebase Authentication.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: 12,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-// widget sghir ywarri section label b icon
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.icon, required this.label});
+// ─────────────────────────────────────────────────────────────────────────────
+// Back button — compact icon + label
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // icon mte3 section
+class _BackButton extends StatelessWidget {
+  const _BackButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 15,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'Retour',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section header — icon chip + label
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.icon, required this.label});
+
   final IconData icon;
-
-  // label mte3 section
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Row(
       children: [
-        // section icon
-        Icon(
-          icon,
-          size: 15,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 15, color: AppColors.primary),
         ),
-        const SizedBox(width: 6),
-
-        // section label
+        const SizedBox(width: 10),
         Text(
           label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            letterSpacing: 0.4,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Visual divider between sections
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SectionDivider extends StatelessWidget {
+  const _SectionDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 20),
+      child: Divider(height: 1),
     );
   }
 }

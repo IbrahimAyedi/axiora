@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/providers/app_session_provider.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_page_scaffold.dart';
@@ -222,13 +223,10 @@ class _PhotosDamageScreenState extends ConsumerState<PhotosDamageScreen> {
     final isUploading = _photoStates.values.any((state) => state.isUploading);
 
     return AppPageScaffold(
-      // title mte3 page
-      title: 'Photos and damage',
-
-      // subtitle mte3 page
-      subtitle: 'Step 5 of 8',
-
-      // body mte3 page
+      title: 'Photos & dégâts',
+      subtitle: 'Analyse IA des dommages',
+      currentStep: 6,
+      totalSteps: 8,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -237,31 +235,54 @@ class _PhotosDamageScreenState extends ConsumerState<PhotosDamageScreen> {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFFF5EA), Color(0xFFFFFCF7)],
+                colors: [AppColors.primary, AppColors.trustBlue],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Theme.of(context).dividerColor),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.18),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // icon mte3 photo
-                const Icon(Icons.photo_camera_back_outlined, size: 40),
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.white20),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome_outlined,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
                 const SizedBox(height: 20),
 
-                // title
                 Text(
-                  'Photos and damage',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  'Photos & dégâts',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 10),
 
-                // description
                 Text(
-                  'Capture the front view and a closer damage photo. Each image is analyzed automatically, then the annotated result and detection details are attached to this draft.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  'Ajoutez les preuves visuelles, lancez l’analyse IA et obtenez une estimation indicative avant la vérification.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.white70,
+                    height: 1.45,
+                  ),
                 ),
               ],
             ),
@@ -270,9 +291,11 @@ class _PhotosDamageScreenState extends ConsumerState<PhotosDamageScreen> {
 
           // section mte3 damage evidence photos
           SectionCard(
-            title: 'Damage evidence',
+            title: 'Preuves photographiques',
             subtitle:
-                'Take or upload a photo; analysis starts as soon as a file is selected',
+                'Prenez ou importez une photo ; l\'analyse démarre dès la sélection.',
+            icon: Icons.add_photo_alternate_outlined,
+            iconColor: AppColors.trustBlue,
             child: Column(
               children: [
                 // front vehicle photo card
@@ -312,10 +335,19 @@ class _PhotosDamageScreenState extends ConsumerState<PhotosDamageScreen> {
                 // linked scans count
                 Row(
                   children: [
-                    const Icon(Icons.linked_camera_outlined, size: 18),
+                    const Icon(
+                      Icons.linked_camera_outlined,
+                      size: 18,
+                      color: AppColors.trustBlue,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text('Linked photos / scans: $linkedCount'),
+                      child: Text(
+                        '$linkedCount photo(s) / scan(s) lié(s) au constat',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -326,46 +358,46 @@ class _PhotosDamageScreenState extends ConsumerState<PhotosDamageScreen> {
 
           // section mte3 damage note
           SectionCard(
-            title: 'Damage note',
+            title: 'Note de dégâts',
             subtitle:
-                'Auto-filled from the AI result; you can edit it before review',
+                'Pré-remplie par l\'IA, modifiable avant la vérification.',
+            icon: Icons.edit_note_outlined,
+            iconColor: AppColors.primary,
             child: AppTextInput(
-              label: 'Evidence note',
+              label: 'Note d\'observation',
               controller: _evidenceNoteController,
               maxLines: 4,
               hint:
-                  'Describe visible impact, angle, or anything useful for review',
+                  'Décrivez l\'impact visible, l\'angle, ou tout élément utile',
             ),
           ),
           const SizedBox(height: 16),
 
-          // section mte3 next action
           SectionCard(
-            title: 'Next action',
+            title: 'Actions',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // continue lel review
                 AppButton(
-                  label: 'Continue to review',
+                  label: 'Continuer vers la vérification',
                   icon: Icons.arrow_forward_rounded,
                   onPressed: isUploading ? null : _continueToReview,
                 ),
 
-                // message waqt API mazela tekhdem
                 if (isUploading) ...[
                   const SizedBox(height: 10),
                   Text(
-                    'Waiting for the damage API response before review.',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    'Analyse IA en cours, veuillez patienter...',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
                 const SizedBox(height: 12),
 
-                // back lel insurance screen
                 AppButton(
-                  label: 'Back to insurance details',
+                  label: 'Retour aux informations assurance',
                   icon: Icons.arrow_back_rounded,
                   variant: AppButtonVariant.secondary,
                   onPressed: () => context.push(RouteNames.insuranceInfoPath),
@@ -387,16 +419,16 @@ extension _DamagePhotoSlotDetails on _DamagePhotoSlot {
   // label mte3 slot
   String get label {
     return switch (this) {
-      _DamagePhotoSlot.frontVehicle => 'Front vehicle photo',
-      _DamagePhotoSlot.damageCloseUp => 'Damage close-up',
+      _DamagePhotoSlot.frontVehicle => 'Vue du véhicule',
+      _DamagePhotoSlot.damageCloseUp => 'Gros plan dégâts',
     };
   }
 
   // hint mte3 slot
   String get hint {
     return switch (this) {
-      _DamagePhotoSlot.frontVehicle => 'Wide view of the crashed vehicle front',
-      _DamagePhotoSlot.damageCloseUp => 'Focused view of the visible damage',
+      _DamagePhotoSlot.frontVehicle => 'Photo large du véhicule accidenté',
+      _DamagePhotoSlot.damageCloseUp => 'Photo rapprochée de la zone impactée',
     };
   }
 
@@ -482,14 +514,21 @@ class _DamageEvidenceCard extends StatelessWidget {
     // text yوضح source/hint
     final source = state.source == null
         ? slot.hint
-        : '${slot.hint} - ${state.source == 'camera' ? 'Camera' : 'Gallery'}';
+        : '${slot.hint} - ${state.source == 'camera' ? 'Caméra' : 'Galerie'}';
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -505,8 +544,9 @@ class _DamageEvidenceCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
                 ),
-                child: Icon(slot.icon, size: 22),
+                child: Icon(slot.icon, size: 22, color: AppColors.trustBlue),
               ),
               const SizedBox(width: 12),
 
@@ -517,10 +557,18 @@ class _DamageEvidenceCard extends StatelessWidget {
                   children: [
                     Text(
                       slot.label,
-                      style: Theme.of(context).textTheme.titleSmall,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 3),
-                    Text(source, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      source,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -587,14 +635,13 @@ class _DamagePhotoActions extends StatelessWidget {
   Widget build(BuildContext context) {
     // camera button
     final cameraButton = AppButton(
-      label: 'Take photo',
+      label: 'Prendre une photo',
       icon: Icons.photo_camera_outlined,
       onPressed: isUploading ? null : onCamera,
     );
 
-    // upload button
     final uploadButton = AppButton(
-      label: 'Upload',
+      label: 'Importer',
       icon: Icons.photo_library_outlined,
       variant: AppButtonVariant.secondary,
       onPressed: isUploading ? null : onGallery,
@@ -639,7 +686,7 @@ class _DamageImagePreview extends StatelessWidget {
     final annotatedUrl = state.prediction?.annotatedImageUrl;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       child: SizedBox(
         height: 220,
         child: Stack(
@@ -657,7 +704,7 @@ class _DamageImagePreview extends StatelessWidget {
                 errorBuilder: (context, error, stackTrace) {
                   return _ImageFallback(
                     localFile: state.localFile,
-                    message: 'Annotated result unavailable',
+                    message: 'Résultat annoté indisponible',
                   );
                 },
               )
@@ -680,7 +727,7 @@ class _DamageImagePreview extends StatelessWidget {
                     CircularProgressIndicator(color: Colors.white),
                     SizedBox(height: 14),
                     Text(
-                      'Analyzing damage...',
+                      'Analyse IA en cours...',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -743,7 +790,7 @@ class _ImageFallback extends StatelessWidget {
         if (localFile != null)
           Image.file(localFile!, fit: BoxFit.cover)
         else
-          Container(color: const Color(0xFFE9EDF3)),
+          Container(color: AppColors.background),
 
         // message overlay
         Align(
@@ -774,25 +821,40 @@ class _EmptyDamagePhoto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFE9EDF3),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // slot icon
-          Icon(slot.icon, size: 40, color: const Color(0xFF667085)),
-          const SizedBox(height: 10),
-
-          // placeholder title
-          Text(
-            'No photo selected',
-            style: Theme.of(context).textTheme.titleSmall,
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(slot.icon, size: 30, color: AppColors.trustBlue),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 14),
 
-          // placeholder subtitle
           Text(
-            'Use camera or upload from gallery',
-            style: Theme.of(context).textTheme.bodySmall,
+            'Ajoutez des photos des dégâts',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          Text(
+            'Prenez une photo ou importez depuis la galerie.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -828,14 +890,11 @@ class _DamageStatusPill extends StatelessWidget {
 
   // t7دد status label w color
   (String, Color) get _status {
-    if (state.isUploading) return ('Analyzing', const Color(0xFF175CD3));
-    if (state.error != null) return ('Retry', const Color(0xFFB42318));
+    if (state.isUploading) return ('Analyse en cours', AppColors.trustBlue);
+    if (state.error != null) return ('Erreur', AppColors.error);
     final prediction = state.prediction;
-    if (prediction == null) return ('Ready', const Color(0xFF475467));
-    if (prediction.damageDetected) {
-      return ('Damage found', const Color(0xFFB54708));
-    }
-    return ('No damage', const Color(0xFF027A48));
+    if (prediction == null) return ('Non analysé', AppColors.textSecondary);
+    return ('Analyse terminée', AppColors.success);
   }
 }
 
@@ -852,43 +911,104 @@ class _DamageResultSummary extends StatelessWidget {
     final detections = prediction.primaryResult?.detections ?? const [];
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // main summary row
           Row(
             children: [
-              // icon حسب damage detected wala le
-              Icon(
-                prediction.damageDetected
-                    ? Icons.warning_amber_rounded
-                    : Icons.verified_outlined,
-                size: 18,
-                color: prediction.damageDetected
-                    ? const Color(0xFFB54708)
-                    : const Color(0xFF027A48),
-              ),
-              const SizedBox(width: 8),
-
-              // summary text
-              Expanded(
-                child: Text(
-                  prediction.summary,
-                  style: Theme.of(context).textTheme.bodyMedium,
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: Icon(
+                  prediction.damageDetected
+                      ? Icons.auto_awesome_outlined
+                      : Icons.verified_outlined,
+                  size: 18,
+                  color: prediction.damageDetected
+                      ? AppColors.trustBlue
+                      : AppColors.success,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Analyse IA des dégâts',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      prediction.damageDetected
+                          ? '${prediction.totalDetections} dégât(s) détecté(s)'
+                          : 'Aucun dégât visible détecté',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _SoftChip(
+                label: 'Analyse terminée',
+                color: prediction.damageDetected
+                    ? AppColors.warning
+                    : AppColors.success,
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Text(
+            prediction.summary,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.45,
+            ),
+          ),
 
-          // chips mte3 detections ken mawjoudin
+          if (prediction.bestConfidence != null) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _SoftChip(
+                  label:
+                      'Confiance ${prediction.bestConfidence!.toStringAsFixed(1)}%',
+                  color: AppColors.trustBlue,
+                ),
+                _SoftChip(
+                  label: 'Sévérité ${_severityLabel(prediction)}',
+                  color: _severityColor(prediction),
+                ),
+              ],
+            ),
+          ],
+
           if (detections.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
+            Text(
+              'Dégâts détectés',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -903,6 +1023,47 @@ class _DamageResultSummary extends StatelessWidget {
   }
 }
 
+class _SoftChip extends StatelessWidget {
+  const _SoftChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+String _severityLabel(DamagePrediction prediction) {
+  final confidence = prediction.bestConfidence ?? prediction.confidence;
+  if (prediction.totalDetections >= 3 || confidence >= 85) return 'élevée';
+  if (prediction.totalDetections >= 2 || confidence >= 60) return 'moyenne';
+  return 'faible';
+}
+
+Color _severityColor(DamagePrediction prediction) {
+  return switch (_severityLabel(prediction)) {
+    'élevée' => AppColors.error,
+    'moyenne' => AppColors.warning,
+    _ => AppColors.success,
+  };
+}
+
 // chip ywarri detection class w confidence
 class _DetectionChip extends StatelessWidget {
   const _DetectionChip({required this.detection});
@@ -915,15 +1076,16 @@ class _DetectionChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
+        color: AppColors.warningLight,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFFED7AA)),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.26)),
       ),
       child: Text(
-        '${detection.displayName} ${detection.confidencePercent.toStringAsFixed(1)}%',
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: const Color(0xFF9A3412)),
+        '${detection.displayName} · ${detection.confidencePercent.toStringAsFixed(1)}%',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -989,11 +1151,11 @@ class _CostEstimationCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0FDF4),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1001,16 +1163,27 @@ class _CostEstimationCard extends StatelessWidget {
           // header
           Row(
             children: [
-              const Icon(
-                Icons.monetization_on_outlined,
-                size: 16,
-                color: Color(0xFF166534),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.successLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.payments_outlined,
+                  size: 18,
+                  color: AppColors.success,
+                ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                'Repair cost estimate',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: const Color(0xFF166534),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Estimation des réparations',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -1018,65 +1191,44 @@ class _CostEstimationCard extends StatelessWidget {
 
           // recommended total + level
           if (estimation.recommendedTotal != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Text('Recommended: ', style: theme.textTheme.bodySmall),
-                Text(
-                  '${estimation.recommendedTotal!.toStringAsFixed(0)} TND',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF166534),
-                  ),
-                ),
-                if (estimation.recommendedLevel != null) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      estimation.recommendedLevel!,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFF166534),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+            const SizedBox(height: 12),
+            Text(
+              '${estimation.recommendedTotal!.toStringAsFixed(0)} TND',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: AppColors.success,
+                fontWeight: FontWeight.w900,
+              ),
             ),
+            if (estimation.recommendedLevel != null) ...[
+              const SizedBox(height: 8),
+              _SoftChip(
+                label: 'Niveau ${estimation.recommendedLevel!}',
+                color: AppColors.success,
+              ),
+            ],
           ],
 
-          // tier options: bas / moyenne / haut
           if (estimation.options.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
-              runSpacing: 4,
+              runSpacing: 8,
               children: estimation.options.entries.map((entry) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFBBF7D0)),
-                  ),
-                  child: Text(
-                    '${_capitalizeFirst(entry.key)}: ${entry.value.toStringAsFixed(0)} TND',
-                    style: theme.textTheme.labelSmall,
-                  ),
+                return _CostOptionChip(
+                  label: _capitalizeFirst(entry.key),
+                  value: '${entry.value.toStringAsFixed(0)} TND',
                 );
               }).toList(),
             ),
           ],
+
+          const SizedBox(height: 12),
+          Text(
+            'Estimation indicative à confirmer par un expert.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
 
           // data source
           if (estimation.dataSource != null) ...[
@@ -1084,7 +1236,7 @@ class _CostEstimationCard extends StatelessWidget {
             Text(
               'Source: ${estimation.dataSource}',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF6B7280),
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -1101,7 +1253,7 @@ class _CostEstimationCard extends StatelessWidget {
                 estimation.vehicleYear?.toString(),
               ].whereType<String>().join(' '),
               style: theme.textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF6B7280),
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -1118,14 +1270,14 @@ class _CostEstimationCard extends StatelessWidget {
                     const Icon(
                       Icons.info_outline,
                       size: 14,
-                      color: Color(0xFFB45309),
+                      color: AppColors.warning,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         w,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFFB45309),
+                          color: AppColors.warning,
                         ),
                       ),
                     ),
@@ -1134,6 +1286,47 @@ class _CostEstimationCard extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CostOptionChip extends StatelessWidget {
+  const _CostOptionChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

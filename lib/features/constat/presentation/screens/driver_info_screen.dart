@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/models/ocr_result.dart';
 import '../../../../core/providers/app_session_provider.dart';
 import '../../../../core/providers/ocr_provider.dart';
@@ -236,13 +237,10 @@ class _DriverInfoScreenState extends ConsumerState<DriverInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return AppPageScaffold(
-      // title mte3 page
-      title: 'Driver information',
-
-      // subtitle mte3 page
-      subtitle: 'Step 2 of 7',
-
-      // body mte3 page
+      title: 'Conducteur',
+      subtitle: 'Informations conducteur',
+      currentStep: 3,
+      totalSteps: 8,
       body: Form(
         key: _formKey,
         child: Column(
@@ -269,14 +267,13 @@ class _DriverInfoScreenState extends ConsumerState<DriverInfoScreen> {
 
                   // title
                   Text(
-                    'Driver information',
+                    'Conducteur',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 10),
 
-                  // description
                   Text(
-                    'This stage is reserved for the people involved, their identification details, and any contact information needed for the final report.',
+                    'Renseignez les informations du conducteur impliqué : identité, permis et coordonnées.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -286,18 +283,18 @@ class _DriverInfoScreenState extends ConsumerState<DriverInfoScreen> {
 
             // checklist mte3 step
             const SectionCard(
-              title: 'Checklist',
-              subtitle: 'Keep the draft moving with the essentials below',
+              title: 'Préparez ces éléments',
+              subtitle: 'Essentiels pour avancer dans la déclaration',
               child: Column(
                 children: [
                   _ChecklistRow(
-                    'List the driver identity and contact details for each party.',
+                    'Identité et coordonnées du conducteur de chaque partie.',
                   ),
                   _ChecklistRow(
-                    'Capture insurer or permit details when available.',
+                    'Numéro de permis ou informations de l\'assureur si disponibles.',
                   ),
                   _ChecklistRow(
-                    'Keep the flow ready for vehicle-specific information next.',
+                    'Prêt pour renseigner les informations du véhicule ensuite.',
                   ),
                 ],
               ),
@@ -306,94 +303,87 @@ class _DriverInfoScreenState extends ConsumerState<DriverInfoScreen> {
 
             // section mte3 driver details
             SectionCard(
-              title: 'Driver details',
-              subtitle: 'Prefilled from your saved profile when available',
+              title: 'Informations conducteur',
+              subtitle: 'Pré-rempli depuis votre profil sauvegardé',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // button scan permis b OCR
-                  AppButton(
-                    label: _isScanningPermis
-                        ? 'Scanning permis...'
-                        : 'Scan permis',
-                    icon: Icons.document_scanner_outlined,
-                    variant: AppButtonVariant.secondary,
+                  _DocumentScanCard(
+                    title: 'Permis de conduire',
+                    subtitle:
+                        'Scanner ou renseigner les informations du conducteur.',
+                    isScanned:
+                        _licenseNumberController.text.trim().isNotEmpty ||
+                        _fullNameController.text.trim().isNotEmpty,
+                    isScanning: _isScanningPermis,
                     onPressed: _isScanningPermis
                         ? null
                         : _choosePermisImageSource,
                   ),
 
-                  // loading indicator waqt scan
                   if (_isScanningPermis) ...[
                     const SizedBox(height: 12),
                     const LinearProgressIndicator(),
                     const SizedBox(height: 8),
                     Text(
-                      'Processing permis image...',
+                      'Traitement de l\'image en cours...',
                       style: Theme.of(context).textTheme.bodySmall,
                       textAlign: TextAlign.center,
                     ),
                   ],
                   const SizedBox(height: 16),
 
-                  // full name input
                   AppTextInput(
-                    label: 'Full name',
+                    label: 'Nom complet',
                     controller: _fullNameController,
                     validator: (value) =>
-                        Validators.requiredField(value, label: 'Full name'),
+                        Validators.requiredField(value, label: 'Nom complet'),
                   ),
                   const SizedBox(height: 16),
 
-                  // license number input
                   AppTextInput(
-                    label: 'License number',
+                    label: 'Numéro de permis',
                     controller: _licenseNumberController,
                     validator: (value) => Validators.requiredField(
                       value,
-                      label: 'License number',
+                      label: 'Numéro de permis',
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // CIN / national id input
                   AppTextInput(
-                    label: 'CIN / National ID',
+                    label: 'CIN / Carte nationale',
                     controller: _nationalIdController,
                     keyboardType: TextInputType.text,
                   ),
                   const SizedBox(height: 16),
 
-                  // phone number input
                   AppTextInput(
-                    label: 'Phone number',
+                    label: 'Téléphone',
                     controller: _phoneNumberController,
                     keyboardType: TextInputType.phone,
                     validator: (value) =>
-                        Validators.requiredField(value, label: 'Phone number'),
+                        Validators.requiredField(value, label: 'Téléphone'),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // section mte3 next action
             SectionCard(
-              title: 'Next action',
+              title: 'Actions',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // save driver info w continue
                   AppButton(
-                    label: 'Continue to vehicle details',
+                    label: 'Continuer vers le véhicule',
                     icon: Icons.arrow_forward_rounded,
                     onPressed: _continueToVehicle,
                   ),
                   const SizedBox(height: 12),
 
-                  // back lel accident details
                   AppButton(
-                    label: 'Back to accident details',
+                    label: 'Retour aux informations accident',
                     icon: Icons.arrow_back_rounded,
                     variant: AppButtonVariant.secondary,
                     onPressed: () => context.push(RouteNames.accidentInfoPath),
@@ -402,6 +392,132 @@ class _DriverInfoScreenState extends ConsumerState<DriverInfoScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentScanCard extends StatelessWidget {
+  const _DocumentScanCard({
+    required this.title,
+    required this.subtitle,
+    required this.isScanned,
+    required this.isScanning,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool isScanned;
+  final bool isScanning;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final statusColor = isScanned ? AppColors.success : AppColors.trustBlue;
+    final statusBackground = isScanned
+        ? AppColors.successLight
+        : AppColors.primaryLight;
+
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.badge_outlined,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _ScanStatusChip(
+                      label: isScanned ? 'Scanne' : 'Non scanne',
+                      color: statusColor,
+                      background: statusBackground,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              isScanning
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    )
+                  : const Icon(
+                      Icons.document_scanner_outlined,
+                      color: AppColors.primary,
+                    ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScanStatusChip extends StatelessWidget {
+  const _ScanStatusChip({
+    required this.label,
+    required this.color,
+    required this.background,
+  });
+
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -423,14 +539,13 @@ class _PermisSourceSheet extends StatelessWidget {
             // camera option
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take photo'),
+              title: const Text('Prendre une photo'),
               onTap: () => Navigator.of(context).pop(ImageSource.camera),
             ),
 
-            // gallery option
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
+              title: const Text('Choisir depuis la galerie'),
               onTap: () => Navigator.of(context).pop(ImageSource.gallery),
             ),
           ],

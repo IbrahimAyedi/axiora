@@ -22,6 +22,8 @@ import '../../features/constat/presentation/screens/photos_damage_screen.dart';
 import '../../features/constat/presentation/screens/vehicle_info_screen.dart';
 import '../../features/admin/presentation/screens/admin_constat_detail_screen.dart';
 import '../../features/admin/presentation/screens/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/admin_users_screen.dart';
+import '../../features/admin/presentation/screens/admin_approved_reports_screen.dart';
 import '../../features/history/presentation/screens/constat_detail_screen.dart';
 import '../../features/history/presentation/screens/party_b_info_screen.dart';
 import '../../features/history/presentation/screens/history_screen.dart';
@@ -55,7 +57,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthRoute =
           state.matchedLocation == RouteNames.loginPath ||
           state.matchedLocation == RouteNames.registerPath;
-       // true ken route hiya splash
+      // true ken route hiya splash
 
       final isSplashRoute = state.matchedLocation == RouteNames.splashPath;
       // ken user mahouch connecte w yheb yodkhol lel app nraj3ouh lel login
@@ -72,8 +74,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       return null;
     },
-        // liste mte3 kol routes mte3 application
 
+    // liste mte3 kol routes mte3 application
     routes: [
       GoRoute(
         path: RouteNames.splashPath,
@@ -90,8 +92,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: RouteNames.register,
         builder: (context, state) => const RegisterScreen(),
       ),
-      // route mte3 home ba3d login
 
+      // route mte3 home ba3d login
       GoRoute(
         path: RouteNames.homePath,
         name: RouteNames.home,
@@ -264,11 +266,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               return AdminConstatDetailScreen(constatId: id);
             },
           ),
+          GoRoute(
+            path: 'users',
+            name: RouteNames.adminUsers,
+            builder: (context, state) => const AdminUsersScreen(),
+          ),
+          GoRoute(
+            path: 'approved-reports',
+            name: RouteNames.adminApprovedReports,
+            builder: (context, state) => const AdminApprovedReportsScreen(),
+          ),
         ],
       ),
     ],
   );
 });
+
 // classe t7awel firebase auth stream l changenotifier
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
