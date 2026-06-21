@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
-// classe feha kol couleurs mte3 application
-// nesta3mlouha bech design yeb9a consistent fi kol screens
 
 abstract final class AppColors {
   // ── Brand primaries ──────────────────────────────────────────────────────
-  static const primary = Color(0xFF124170);
-  static const primaryDark = Color(0xFF0B2C4A);
-  static const primaryLight = Color(0xFFE7F0FB); // subtle primary tint
-  static const accent = Color(0xFFFFA24A);
+  static const primary = Color(0xFF0B2D4D);      // Navy Blue (Axiora brand)
+  static const primaryDark = Color(0xFF071D33);
+  static const primaryLight = Color(0xFFE7F0FB);
+  static const trustBlue = Color(0xFF1769AA);     // Trust Blue
+  static const cyanTech = Color(0xFF38BDF8);      // Cyan Tech accent
+  static const accent = Color(0xFFFFA24A);        // Amber — constat/warning flow
   static const accentDark = Color(0xFFE07B10);
 
   // ── Surfaces ─────────────────────────────────────────────────────────────
-  static const background = Color(0xFFF3F6FB);
+  static const background = Color(0xFFF4F7FB);
   static const surface = Colors.white;
   static const surfaceAlt = Color(0xFFE8EEF6);
-  static const surfaceElevated = Color(0xFFFFFFFF); // same as white, semantic
+  static const surfaceElevated = Color(0xFFFFFFFF);
 
   // ── Text ─────────────────────────────────────────────────────────────────
-  static const textPrimary = Color(0xFF18212F);
-  static const textSecondary = Color(0xFF5C6773);
+  static const textPrimary = Color(0xFF172033);
+  static const textSecondary = Color(0xFF6B7280);
   static const textDisabled = Color(0xFFADB8C6);
 
   // ── Border ───────────────────────────────────────────────────────────────
-  static const border = Color(0xFFD7E0EA);
+  static const border = Color(0xFFD8E2EE);
   static const borderFocus = primary;
 
   // ── Semantic: Info ────────────────────────────────────────────────────────

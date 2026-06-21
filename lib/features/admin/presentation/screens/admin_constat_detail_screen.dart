@@ -6,15 +6,19 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/router/route_names.dart';
 import '../../../../core/models/document_scan.dart';
-import '../../../../core/widgets/section_card.dart';
 import '../../../constat/presentation/widgets/cost_estimation_summary.dart';
 
-// screen mte3 admin detail
-// ywarri constat accepted men collection approved_constats
+const _pageBackground = Color(0xFFF4F7FB);
+const _cardBorder = Color(0xFFD8E2EE);
+const _navy = Color(0xFF123A63);
+const _blue = Color(0xFF1E6BD6);
+const _green = Color(0xFF1F8A5B);
+const _amber = Color(0xFFB7791F);
+const _textMuted = Color(0xFF627387);
+
 class AdminConstatDetailScreen extends StatefulWidget {
   const AdminConstatDetailScreen({required this.constatId, super.key});
 
-  // id mte3 constat eli admin bech ychouf detail mte3ou
   final String constatId;
 
   @override
@@ -23,30 +27,18 @@ class AdminConstatDetailScreen extends StatefulWidget {
 }
 
 class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
-  // data mte3 constat jeya mel Firestore
   Map<String, dynamic>? _data;
-
-  // photo scans: built from photoScansSnapshot or loaded from owner's scans
   List<DocumentScan> _photoScans = const [];
-
-  // loading state
   bool _loading = true;
-
-  // error message ken fama problem
   String? _error;
-
-  // true fi wakt admin approve action
   bool _approving = false;
 
   @override
   void initState() {
     super.initState();
-
-    // ki screen tet7al, nloadiw constat detail
     _load();
   }
 
-  // tloadi constat mel approved_constats
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -55,59 +47,48 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
     });
 
     try {
-      // njibou constat men top-level collection approved_constats
       final doc = await FirebaseFirestore.instance
           .collection('approved_constats')
           .doc(widget.constatId)
           .get();
 
-      // ken constat mawjoudch, nwarriw error
       if (!doc.exists) {
         if (mounted) {
           setState(() {
-            _error = 'Constat not found in approved_constats.';
+            _error = 'Constat introuvable dans approved_constats.';
             _loading = false;
           });
         }
         return;
       }
 
-      // ken doc mawjoud, n7otou data fi state
       if (mounted) {
         setState(() {
           _data = <String, dynamic>{...doc.data()!, 'id': doc.id};
           _loading = false;
         });
-        // Populate _photoScans from snapshot or owner scans subcollection
         _loadPhotoScansIfNeeded();
       }
     } catch (e) {
-      // ken fama erreur fi Firestore
       if (mounted) {
         setState(() {
-          _error = 'Failed to load constat: $e';
+          _error = 'Impossible de charger le constat: $e';
           _loading = false;
         });
       }
     }
   }
 
-  // Primary: reconstruct scans from embedded photoScansSnapshot.
-  // Fallback: if snapshot is null/empty and ownerUid + photoScanIds are present,
-  // read each scan doc from users/{ownerUid}/scans/{scanId} so admin can still
-  // see damage thumbnails and cost estimate for older constats.
   Future<void> _loadPhotoScansIfNeeded() async {
     final data = _data;
     if (data == null) return;
 
-    // Primary path — snapshot embedded in approved_constats document
-    final fromSnapshot = _DetailBody._buildScans(data['photoScansSnapshot']);
+    final fromSnapshot = _DetailBody.buildScans(data['photoScansSnapshot']);
     if (fromSnapshot.isNotEmpty) {
       if (mounted) setState(() => _photoScans = fromSnapshot);
       return;
     }
 
-    // Fallback path — read individual scan docs from owner's scans subcollection
     final ownerUid = data['ownerUid'] as String?;
     final rawIds = data['photoScanIds'];
     final scanIds = rawIds is List
@@ -121,7 +102,7 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
     if (ownerUid == null || ownerUid.isEmpty || scanIds.isEmpty) return;
 
     debugPrint(
-      '[AdminPhotos] photoScansSnapshot missing — fetching '
+      '[AdminPhotos] photoScansSnapshot missing - fetching '
       '${scanIds.length} scan(s) from users/$ownerUid/scans/',
     );
 
@@ -156,7 +137,6 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
     }
   }
 
-  // admin yapprovi constat: yupdati approved_constats + owner constat + notifications
   Future<void> _approveConstat() async {
     final data = _data;
     if (data == null) return;
@@ -185,7 +165,6 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
         'adminReviewedByUid': adminUid,
       };
 
-      // 1. Update approved_constats (admin has full write access)
       await FirebaseFirestore.instance
           .collection('approved_constats')
           .doc(constatId)
@@ -193,8 +172,6 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
 
       debugPrint('[AdminApproval] approved_constats/$constatId updated');
 
-      // 2. Try to update owner constat — requires Firestore rule allowing
-      //    authenticated users to update accepted constats with admin fields.
       try {
         await FirebaseFirestore.instance
             .collection('users')
@@ -202,12 +179,15 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
             .collection('constats')
             .doc(constatId)
             .update(adminFields);
-        debugPrint('[AdminApproval] users/$ownerUid/constats/$constatId updated');
+        debugPrint(
+          '[AdminApproval] users/$ownerUid/constats/$constatId updated',
+        );
       } on FirebaseException catch (e) {
-        debugPrint('[AdminApproval] Could not update owner constat: ${e.code} ${e.message}');
+        debugPrint(
+          '[AdminApproval] Could not update owner constat: ${e.code} ${e.message}',
+        );
       }
 
-      // 3. Notify User A (owner)
       await _sendAdminApprovalNotification(
         constatId: constatId,
         targetUid: ownerUid,
@@ -215,7 +195,6 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
         isOwner: true,
       );
 
-      // 4. Notify User B (approver) if UID is known
       if (approverUid != null && approverUid.isNotEmpty) {
         await _sendAdminApprovalNotification(
           constatId: constatId,
@@ -225,7 +204,6 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
         );
       }
 
-      // 5. Refresh local data so badge appears immediately
       if (mounted) {
         setState(() {
           _data = <String, dynamic>{..._data!, ...adminFields};
@@ -242,14 +220,13 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
       debugPrint('[AdminApproval] ERROR: $e');
       if (mounted) {
         setState(() => _approving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Approval failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Approval failed: $e')));
       }
     }
   }
 
-  // tcreati notification mte3 admin approval lel user el muhedd
   Future<void> _sendAdminApprovalNotification({
     required String constatId,
     required String targetUid,
@@ -283,58 +260,57 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
             'createdAt': DateTime.now().toIso8601String(),
           }, SetOptions(merge: true));
       debugPrint(
-        '[NotifAdminApproval] SUCCESS — $notificationId for $targetUid',
+        '[NotifAdminApproval] SUCCESS - $notificationId for $targetUid',
       );
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
         debugPrint(
-          '[NotifAdminApproval] PERMISSION_DENIED — $notificationId for $targetUid. '
+          '[NotifAdminApproval] PERMISSION_DENIED - $notificationId for $targetUid. '
           'Check Firestore rules: allow create, update must be set for '
           'users/{userId}/notifications/{notifId}.',
         );
       } else {
-        debugPrint(
-          '[NotifAdminApproval] ERROR — ${e.code}: ${e.message}',
-        );
+        debugPrint('[NotifAdminApproval] ERROR - ${e.code}: ${e.message}');
       }
     } catch (e) {
-      debugPrint('[NotifAdminApproval] ERROR — $e');
+      debugPrint('[NotifAdminApproval] ERROR - $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      // appbar mte3 admin detail
+      backgroundColor: _pageBackground,
       appBar: AppBar(
+        backgroundColor: _pageBackground,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: _navy,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // reference number wala default title
-            Text(_data?['referenceNumber'] as String? ?? 'Constat detail'),
-
-            // subtitle yوضح eli admin view read only
-            Text('Admin view — read only', style: theme.textTheme.bodySmall),
+            Text(
+              _data?['referenceNumber'] as String? ?? 'Détail du constat',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            Text(
+              'Revue expert admin',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: _textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
-
-      // body mte3 screen
       body: SafeArea(
         child: _loading
-            // loading indicator
             ? const Center(child: CircularProgressIndicator())
-
-            // error view ken fama erreur
             : _error != null
             ? _ErrorView(
                 message: _error!,
                 onBack: () => context.go(RouteNames.adminDashboardPath),
               )
-
-            // detail body ken data loaded
             : _DetailBody(
                 data: _data!,
                 photoScans: _photoScans,
@@ -346,11 +322,6 @@ class _AdminConstatDetailScreenState extends State<AdminConstatDetailScreen> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Main detail body
-// ---------------------------------------------------------------------------
-
-// widget ywarri details mte3 constat accepted
 class _DetailBody extends StatelessWidget {
   const _DetailBody({
     required this.data,
@@ -359,323 +330,164 @@ class _DetailBody extends StatelessWidget {
     required this.isApproving,
   });
 
-  // data mte3 constat
   final Map<String, dynamic> data;
-
-  // photo scans — already resolved by the state (snapshot or owner subcollection)
   final List<DocumentScan> photoScans;
-
-  // callback ki admin yapprovi
   final VoidCallback onApprove;
-
-  // true waqt approve action
   final bool isApproving;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    // basic metadata
-    final referenceNumber = data['referenceNumber'] as String? ?? '--';
-    final approvalStatus = data['approvalStatus'] as String? ?? 'accepted';
+    final referenceNumber = _read(data['referenceNumber'], fallback: '--');
+    final approvalStatus = _read(data['approvalStatus'], fallback: 'accepted');
     final createdAt = _fmt(data['createdAt'] as String?);
     final submittedAt = _fmt(data['submittedAt'] as String?);
     final acceptedAt = _fmt(data['approvalRespondedAt'] as String?);
     final mirroredAt = _fmt(data['mirroredAt'] as String?);
+    final notes = _read(data['notes']);
+    final photoScanIds = _strList(data['photoScanIds']);
 
-    // snapshots mte3 Party A
     final driverSnapshot = _asMap(data['driverSnapshot']);
     final vehicleSnapshot = _asMap(data['vehicleSnapshot']);
-
-    // Party A insurance: prefer partyAInsuranceSnapshot, fallback insuranceSnapshot
     final insuranceSnapshot =
         _asMap(data['partyAInsuranceSnapshot']) ??
         _asMap(data['insuranceSnapshot']);
-
-    // assurance target mte3 Party B
     final partyBTargetInsuranceSnapshot = _asMap(
       data['partyBTargetInsuranceSnapshot'],
     );
-
-    // snapshots mte3 Party B
     final partyBDriverSnapshot = _asMap(data['partyBDriverSnapshot']);
     final partyBVehicleSnapshot = _asMap(data['partyBVehicleSnapshot']);
     final partyBInsuranceSnapshot = _asMap(data['partyBInsuranceSnapshot']);
 
-    // notes w photos
-    final notes = data['notes'] as String?;
-    final photoScanIds = _strList(data['photoScanIds']);
-
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // header fih reference, status w dates
-          _StatusHeader(
+          _ReviewHeader(
             referenceNumber: referenceNumber,
             approvalStatus: approvalStatus,
-            createdAt: createdAt,
-            submittedAt: submittedAt,
             acceptedAt: acceptedAt,
-            mirroredAt: mirroredAt,
-            isDark: isDark,
-            theme: theme,
+            adminReviewStatus: data['adminReviewStatus'] as String?,
           ),
           const SizedBox(height: 16),
-
-          // section mte3 accident info
-          SectionCard(
-            title: 'Accident information',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Row('Date & time', _fmt(data['accidentDateTime'] as String?)),
-                _Row('Location', data['accidentLocation'] as String? ?? '--'),
-                _Row(
+          _ExpertCard(
+            title: "Résumé de l'accident",
+            icon: Icons.assignment_outlined,
+            child: _InfoGrid(
+              rows: [
+                _InfoRowData(
+                  'Date et heure',
+                  _fmt(data['accidentDateTime'] as String?),
+                ),
+                _InfoRowData('Lieu', _read(data['accidentLocation'])),
+                _InfoRowData(
                   'Description',
-                  data['accidentDescription'] as String? ?? '--',
+                  _read(data['accidentDescription']),
+                  wide: true,
                 ),
-                if (notes != null && notes.isNotEmpty)
-                  _Row('Notes / damage', notes),
+                if (notes != '--')
+                  _InfoRowData('Notes dégâts', notes, wide: true),
+                _InfoRowData('Créé le', createdAt),
+                if (submittedAt != '--') _InfoRowData('Soumis le', submittedAt),
+                _InfoRowData('Accepté le', acceptedAt),
+                _InfoRowData('Copié admin', mirroredAt),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-
-          // divider mte3 Party A
-          _PartyDivider(
-            label: 'Party A',
-            subtitle: 'Constat owner / initiator',
-            color: const Color(0xFF1565C0),
-            isDark: isDark,
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-
-          // Party A driver info
-          SectionCard(
-            title: 'Driver',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Row('Full name', _snap(driverSnapshot, 'fullName')),
-                _Row('License number', _snap(driverSnapshot, 'licenseNumber')),
-                _Row('CIN / National ID', _snap(driverSnapshot, 'nationalId')),
-                _Row('Phone', _snap(driverSnapshot, 'phoneNumber')),
-              ],
+          const SizedBox(height: 14),
+          _ExpertCard(
+            title: 'Conducteur A',
+            subtitle: 'Initiateur du constat',
+            icon: Icons.person_outline,
+            accent: _blue,
+            child: _DriverSection(
+              driver: driverSnapshot,
+              insurance: insuranceSnapshot,
+              targetInsurance: partyBTargetInsuranceSnapshot,
             ),
           ),
-          const SizedBox(height: 12),
-
-          // Party A vehicle info
-          SectionCard(
-            title: 'Vehicle',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Row('Plate number', _snap(vehicleSnapshot, 'plateNumber')),
-                _Row('Brand', _snap(vehicleSnapshot, 'brand')),
-                _Row('Model', _snap(vehicleSnapshot, 'model')),
-                _Row('VIN', _snap(vehicleSnapshot, 'vin')),
-              ],
+          const SizedBox(height: 14),
+          _ExpertCard(
+            title: 'Conducteur B',
+            subtitle: 'Deuxième partie',
+            icon: Icons.person_add_alt_1_outlined,
+            accent: _green,
+            child: _DriverSection(
+              driver: partyBDriverSnapshot,
+              insurance: partyBInsuranceSnapshot,
             ),
           ),
-          const SizedBox(height: 12),
-
-          // Party A insurance info
-          SectionCard(
-            title: 'Insurance',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Row(
-                  'Insurance number',
-                  _snap(insuranceSnapshot, 'insuranceNumber'),
-                ),
-                _Row('Company', _snap(insuranceSnapshot, 'companyName')),
-                _Row(
-                  'Policy holder',
-                  _snap(insuranceSnapshot, 'policyHolderName'),
-                ),
-                _Row('Policy type', _snap(insuranceSnapshot, 'policyType')),
-              ],
+          const SizedBox(height: 14),
+          _ExpertCard(
+            title: 'Véhicules',
+            icon: Icons.directions_car_outlined,
+            child: _VehiclesSection(
+              vehicleA: vehicleSnapshot,
+              vehicleB: partyBVehicleSnapshot,
             ),
           ),
-
-          // target insurance number eli tbaathlou approval request
-          if (partyBTargetInsuranceSnapshot != null) ...[
-            const SizedBox(height: 12),
-            SectionCard(
-              title: 'Other party target insurance',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Row(
-                    'Insurance number',
-                    _snap(partyBTargetInsuranceSnapshot, 'insuranceNumber'),
-                  ),
-                  _Row(
-                    'Company',
-                    _snap(partyBTargetInsuranceSnapshot, 'companyName'),
-                  ),
-                  _Row(
-                    'Policy holder',
-                    _snap(partyBTargetInsuranceSnapshot, 'policyHolderName'),
-                  ),
-                  _Row(
-                    'Policy type',
-                    _snap(partyBTargetInsuranceSnapshot, 'policyType'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 20),
-
-          // divider mte3 Party B
-          _PartyDivider(
-            label: 'Party B',
-            subtitle: 'Second party — completed info',
-            color: const Color(0xFF2E7D32),
-            isDark: isDark,
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-
-          // Party B driver info
-          SectionCard(
-            title: 'Driver',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Row('Full name', _snap(partyBDriverSnapshot, 'fullName')),
-                _Row(
-                  'License number',
-                  _snap(partyBDriverSnapshot, 'licenseNumber'),
-                ),
-                _Row(
-                  'CIN / National ID',
-                  _snap(partyBDriverSnapshot, 'nationalId'),
-                ),
-                _Row('Phone', _snap(partyBDriverSnapshot, 'phoneNumber')),
-              ],
+          const SizedBox(height: 14),
+          _ExpertCard(
+            title: 'Photos des dégâts',
+            icon: Icons.photo_library_outlined,
+            accent: _amber,
+            child: _PhotosDamageSection(
+              photoScans: photoScans,
+              photoScanIds: photoScanIds,
             ),
           ),
-          const SizedBox(height: 12),
-
-          // Party B vehicle info
-          SectionCard(
-            title: 'Vehicle',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Row(
-                  'Plate number',
-                  _snap(partyBVehicleSnapshot, 'plateNumber'),
-                ),
-                _Row('Brand', _snap(partyBVehicleSnapshot, 'brand')),
-                _Row('Model', _snap(partyBVehicleSnapshot, 'model')),
-                _Row('VIN', _snap(partyBVehicleSnapshot, 'vin')),
-              ],
+          const SizedBox(height: 14),
+          _ExpertCard(
+            title: 'Analyse IA / Coût estimé',
+            icon: Icons.analytics_outlined,
+            accent: _green,
+            child: _AnalysisCostSection(photoScans: photoScans),
+          ),
+          const SizedBox(height: 14),
+          _ExpertCard(
+            title: 'Décision admin',
+            icon: Icons.verified_user_outlined,
+            accent: _blue,
+            child: _DecisionSection(
+              approvalStatus: approvalStatus,
+              requestedInsurance:
+                  data['approvalRequestedToInsuranceNumber'] as String?,
+              requestedAt: _fmt(data['approvalRequestedAt'] as String?),
+              ownerUid: data['ownerUid'] as String?,
+              approverUid: data['approverUid'] as String?,
+              adminReviewStatus: data['adminReviewStatus'] as String?,
+              adminReviewedAt: _fmt(data['adminReviewedAt'] as String?),
+              adminReviewedByUid: data['adminReviewedByUid'] as String?,
+              onApprove: onApprove,
+              isApproving: isApproving,
             ),
-          ),
-          const SizedBox(height: 12),
-
-          // Party B insurance info
-          SectionCard(
-            title: 'Insurance',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Row(
-                  'Insurance number',
-                  _snap(partyBInsuranceSnapshot, 'insuranceNumber'),
-                ),
-                _Row('Company', _snap(partyBInsuranceSnapshot, 'companyName')),
-                _Row(
-                  'Policy holder',
-                  _snap(partyBInsuranceSnapshot, 'policyHolderName'),
-                ),
-                _Row(
-                  'Policy type',
-                  _snap(partyBInsuranceSnapshot, 'policyType'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // section mte3 approval metadata
-          SectionCard(
-            title: 'Approval details',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Row('Status', approvalStatus),
-                _Row(
-                  'Requested to insurance',
-                  data['approvalRequestedToInsuranceNumber'] as String? ?? '--',
-                ),
-                _Row(
-                  'Requested at',
-                  _fmt(data['approvalRequestedAt'] as String?),
-                ),
-                _Row('Accepted at', acceptedAt),
-                _Row('Owner UID', data['ownerUid'] as String? ?? '--'),
-                _Row('Approver UID', data['approverUid'] as String? ?? '--'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // section mte3 damage photos + cost estimate (uses embedded snapshot)
-          _PhotoEvidenceSection(
-            photoScans: photoScans,
-            photoScanIds: photoScanIds,
-            isDark: isDark,
-            theme: theme,
-          ),
-          const SizedBox(height: 20),
-
-          // ── Admin final approval section ─────────────────────────────────
-          _AdminActionSection(
-            adminReviewStatus: data['adminReviewStatus'] as String?,
-            adminReviewedAt: _fmt(data['adminReviewedAt'] as String?),
-            adminReviewedByUid: data['adminReviewedByUid'] as String?,
-            onApprove: onApprove,
-            isApproving: isApproving,
-            isDark: isDark,
-            theme: theme,
           ),
         ],
       ),
     );
   }
 
-  // t7awel dynamic value l Map<String, dynamic>
-  static Map<String, dynamic>? _asMap(dynamic v) {
-    if (v is Map<String, dynamic>) return v;
-    if (v is Map) return v.map((k, val) => MapEntry(k.toString(), val));
+  static Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, val) => MapEntry(key.toString(), val));
+    }
     return null;
   }
 
-  // t7awel dynamic value l List<String>
-  static List<String> _strList(dynamic v) {
-    if (v is List) return v.map((e) => e.toString()).toList();
+  static List<String> _strList(dynamic value) {
+    if (value is List) return value.map((e) => e.toString()).toList();
     return const [];
   }
 
-  // reconstruct DocumentScan objects from photoScansSnapshot list
-  static List<DocumentScan> _buildScans(dynamic raw) {
+  static List<DocumentScan> buildScans(dynamic raw) {
     if (raw is! List || raw.isEmpty) return const [];
     return raw
         .whereType<Map>()
-        .map((m) {
+        .map((scan) {
           try {
             return DocumentScan.fromJson(
-              m.map((k, v) => MapEntry(k.toString(), v)),
+              scan.map((key, value) => MapEntry(key.toString(), value)),
             );
           } catch (_) {
             return null;
@@ -685,187 +497,269 @@ class _DetailBody extends StatelessWidget {
         .toList();
   }
 
-  // tjib value men snapshot wala '--'
-  static String _snap(Map<String, dynamic>? snap, String key) {
-    final v = snap?[key];
-    if (v == null) return '--';
-    final s = v.toString().trim();
-    return s.isEmpty ? '--' : s;
+  static String _read(Object? value, {String fallback = '--'}) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? fallback : text;
   }
 
-  // tformat date string l yyyy-MM-dd HH:mm
+  static String _snap(Map<String, dynamic>? snapshot, String key) {
+    return _read(snapshot?[key]);
+  }
+
   static String _fmt(String? raw) {
     if (raw == null || raw.isEmpty) return '--';
-    final dt = DateTime.tryParse(raw);
-    if (dt == null) return raw;
-    return DateFormat('yyyy-MM-dd HH:mm').format(dt);
+    final date = DateTime.tryParse(raw);
+    if (date == null) return raw;
+    return DateFormat('yyyy-MM-dd HH:mm').format(date);
   }
 }
 
-// ---------------------------------------------------------------------------
-// Status header banner
-// ---------------------------------------------------------------------------
-
-// widget ywarri header mte3 status w dates
-class _StatusHeader extends StatelessWidget {
-  const _StatusHeader({
+class _ReviewHeader extends StatelessWidget {
+  const _ReviewHeader({
     required this.referenceNumber,
     required this.approvalStatus,
-    required this.createdAt,
-    required this.submittedAt,
     required this.acceptedAt,
-    required this.mirroredAt,
-    required this.isDark,
-    required this.theme,
+    required this.adminReviewStatus,
   });
 
   final String referenceNumber;
   final String approvalStatus;
-  final String createdAt;
-  final String submittedAt;
   final String acceptedAt;
-  final String mirroredAt;
-  final bool isDark;
-  final ThemeData theme;
+  final String? adminReviewStatus;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isAdminApproved = adminReviewStatus == 'approved';
+
     return Container(
-      padding: const EdgeInsets.all(20),
-
-      // decoration mte3 status banner
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF1B2A1E), const Color(0xFF1A3322)]
-              : [const Color(0xFFE8F5E9), const Color(0xFFF1F8E9)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isDark
-              ? Colors.green.shade800.withValues(alpha: 0.4)
-              : Colors.green.shade200,
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: _cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: _navy.withValues(alpha: 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE9F1FF),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(Icons.policy_outlined, color: _blue),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      referenceNumber,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: _navy,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Dossier accepté par les parties - revue finale',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: _textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _StatusPill(
+                label: approvalStatus,
+                color: _green,
+                background: const Color(0xFFEAF7F0),
+              ),
+              _StatusPill(
+                label: isAdminApproved ? 'Approuvé admin' : 'À vérifier',
+                color: isAdminApproved ? _green : _amber,
+                background: isAdminApproved
+                    ? const Color(0xFFEAF7F0)
+                    : const Color(0xFFFFF6E5),
+              ),
+              if (acceptedAt != '--')
+                _StatusPill(
+                  label: 'Accepté le $acceptedAt',
+                  color: _blue,
+                  background: const Color(0xFFE9F1FF),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-      // content mte3 banner
+class _ExpertCard extends StatelessWidget {
+  const _ExpertCard({
+    required this.title,
+    required this.icon,
+    required this.child,
+    this.subtitle,
+    this.accent = _blue,
+  });
+
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+  final Widget child;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: _cardBorder),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              // icon accepted/verified
-              Icon(
-                Icons.verified_outlined,
-                size: 28,
-                color: isDark ? Colors.green.shade300 : Colors.green.shade700,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: accent, size: 20),
               ),
               const SizedBox(width: 10),
-
-              // reference number
               Expanded(
-                child: Text(
-                  referenceNumber,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-
-              // status badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: isDark ? 0.25 : 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Colors.green.withValues(alpha: isDark ? 0.4 : 0.3),
-                  ),
-                ),
-                child: Text(
-                  approvalStatus.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? Colors.green.shade300
-                        : Colors.green.shade800,
-                    letterSpacing: 0.5,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: _navy,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: _textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-
-          // timeline mte3 creation/submission/acceptance
-          _TimeLine(label: 'Created', value: createdAt, theme: theme),
-          if (submittedAt != '--')
-            _TimeLine(label: 'Submitted', value: submittedAt, theme: theme),
-          _TimeLine(
-            label: 'Accepted',
-            value: acceptedAt,
-            theme: theme,
-            highlight: true,
-            isDark: isDark,
-          ),
-          _TimeLine(
-            label: 'Mirrored to admin',
-            value: mirroredAt,
-            theme: theme,
-          ),
+          child,
         ],
       ),
     );
   }
 }
 
-// row sghira lel timeline dates
-class _TimeLine extends StatelessWidget {
-  const _TimeLine({
-    required this.label,
-    required this.value,
-    required this.theme,
-    this.highlight = false,
-    this.isDark = false,
-  });
+class _InfoRowData {
+  const _InfoRowData(this.label, this.value, {this.wide = false});
 
   final String label;
   final String value;
-  final ThemeData theme;
-  final bool highlight;
-  final bool isDark;
+  final bool wide;
+}
+
+class _InfoGrid extends StatelessWidget {
+  const _InfoGrid({required this.rows});
+
+  final List<_InfoRowData> rows;
 
   @override
   Widget build(BuildContext context) {
-    // color yetbadel ken timeline highlighted
-    final textColor = highlight
-        ? (isDark ? Colors.green.shade300 : Colors.green.shade800)
-        : theme.colorScheme.onSurface.withValues(alpha: 0.75);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumns = constraints.maxWidth >= 560;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: rows.map((row) {
+            final width = !twoColumns || row.wide
+                ? constraints.maxWidth
+                : (constraints.maxWidth - 10) / 2;
+            return SizedBox(
+              width: width,
+              child: _InfoTile(row: row),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+}
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({required this.row});
+
+  final _InfoRowData row;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _pageBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // label mte3 date
           Text(
-            '$label:  ',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            row.label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: _textMuted,
+              fontWeight: FontWeight.w700,
             ),
           ),
-
-          // value mte3 date
+          const SizedBox(height: 4),
           Text(
-            value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: textColor,
-              fontWeight: highlight ? FontWeight.w700 : FontWeight.normal,
+            row.value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: _navy,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -874,74 +768,199 @@ class _TimeLine extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Party divider
-// ---------------------------------------------------------------------------
-
-// divider yfar9 bin Party A w Party B
-class _PartyDivider extends StatelessWidget {
-  const _PartyDivider({
-    required this.label,
-    required this.subtitle,
-    required this.color,
-    required this.isDark,
-    required this.theme,
+class _DriverSection extends StatelessWidget {
+  const _DriverSection({
+    required this.driver,
+    required this.insurance,
+    this.targetInsurance,
   });
 
-  final String label;
-  final String subtitle;
-  final Color color;
-  final bool isDark;
-  final ThemeData theme;
+  final Map<String, dynamic>? driver;
+  final Map<String, dynamic>? insurance;
+  final Map<String, dynamic>? targetInsurance;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // badge mte3 party
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: color.withValues(alpha: isDark ? 0.35 : 0.25),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.person, size: 14, color: color),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
+    final rows = [
+      _InfoRowData('Nom complet', _DetailBody._snap(driver, 'fullName')),
+      _InfoRowData('Permis', _DetailBody._snap(driver, 'licenseNumber')),
+      _InfoRowData(
+        'CIN / Identifiant',
+        _DetailBody._snap(driver, 'nationalId'),
+      ),
+      _InfoRowData('Téléphone', _DetailBody._snap(driver, 'phoneNumber')),
+      _InfoRowData(
+        'Assurance',
+        _DetailBody._snap(insurance, 'insuranceNumber'),
+      ),
+      _InfoRowData('Compagnie', _DetailBody._snap(insurance, 'companyName')),
+      _InfoRowData(
+        'Titulaire police',
+        _DetailBody._snap(insurance, 'policyHolderName'),
+      ),
+      _InfoRowData('Type police', _DetailBody._snap(insurance, 'policyType')),
+      if (targetInsurance != null)
+        _InfoRowData(
+          'Assurance cible partie B',
+          _DetailBody._snap(targetInsurance, 'insuranceNumber'),
+          wide: true,
         ),
-        const SizedBox(width: 10),
+    ];
 
-        // subtitle w divider line
-        Expanded(
-          child: Column(
+    return _InfoGrid(rows: rows);
+  }
+}
+
+class _VehiclesSection extends StatelessWidget {
+  const _VehiclesSection({required this.vehicleA, required this.vehicleB});
+
+  final Map<String, dynamic>? vehicleA;
+  final Map<String, dynamic>? vehicleB;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 620;
+        final panels = [
+          _VehiclePanel(label: 'Véhicule A', vehicle: vehicleA, color: _blue),
+          _VehiclePanel(label: 'Véhicule B', vehicle: vehicleB, color: _green),
+        ];
+
+        if (isWide) {
+          return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                subtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+              Expanded(child: panels[0]),
+              const SizedBox(width: 12),
+              Expanded(child: panels[1]),
+            ],
+          );
+        }
+
+        return Column(
+          children: [panels[0], const SizedBox(height: 12), panels[1]],
+        );
+      },
+    );
+  }
+}
+
+class _VehiclePanel extends StatelessWidget {
+  const _VehiclePanel({
+    required this.label,
+    required this.vehicle,
+    required this.color,
+  });
+
+  final String label;
+  final Map<String, dynamic>? vehicle;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _pageBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-              Divider(
-                height: 12,
-                color: theme.dividerColor.withValues(alpha: 0.5),
-              ),
             ],
+          ),
+          const SizedBox(height: 12),
+          _KeyValue(
+            'Immatriculation',
+            _DetailBody._snap(vehicle, 'plateNumber'),
+          ),
+          _KeyValue('Marque', _DetailBody._snap(vehicle, 'brand')),
+          _KeyValue('Modèle', _DetailBody._snap(vehicle, 'model')),
+          _KeyValue('VIN', _DetailBody._snap(vehicle, 'vin')),
+        ],
+      ),
+    );
+  }
+}
+
+class _PhotosDamageSection extends StatelessWidget {
+  const _PhotosDamageSection({
+    required this.photoScans,
+    required this.photoScanIds,
+  });
+
+  final List<DocumentScan> photoScans;
+  final List<String> photoScanIds;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (photoScans.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${photoScans.length} photo(s) jointe(s)',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: _navy,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: photoScans
+                .map((scan) => _AdminPhotoThumbnail(scan: scan))
+                .toList(),
+          ),
+        ],
+      );
+    }
+
+    if (photoScanIds.isEmpty) {
+      return const _MutedNotice(
+        icon: Icons.photo_outlined,
+        text: "Aucune photo de dégâts n'est liée à ce constat.",
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _MutedNotice(
+          icon: Icons.info_outline,
+          text: 'Aperçu indisponible pour ce constat plus ancien.',
+        ),
+        const SizedBox(height: 10),
+        ...photoScanIds.map(
+          (id) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: _KeyValue('Photo', id),
           ),
         ),
       ],
@@ -949,143 +968,183 @@ class _PartyDivider extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Photo evidence section — shows thumbnails + cost estimate when snapshot
-// is available, falls back to scan-ID list for older constats.
-// ---------------------------------------------------------------------------
-
-class _PhotoEvidenceSection extends StatelessWidget {
-  const _PhotoEvidenceSection({
-    required this.photoScans,
-    required this.photoScanIds,
-    required this.isDark,
-    required this.theme,
-  });
+class _AnalysisCostSection extends StatelessWidget {
+  const _AnalysisCostSection({required this.photoScans});
 
   final List<DocumentScan> photoScans;
-  final List<String> photoScanIds;
-  final bool isDark;
-  final ThemeData theme;
 
   @override
   Widget build(BuildContext context) {
-    // ── Case 1: snapshot available — show visuals ──────────────────────────
-    if (photoScans.isNotEmpty) {
-      final hasCost = CostEstimationSummary.hasData(photoScans);
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SectionCard(
-            title: 'Damage photos',
-            icon: Icons.camera_alt_outlined,
-            iconColor: Colors.orange,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${photoScans.length} photo(s) attached',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: photoScans
-                      .map((s) => _AdminPhotoThumbnail(scan: s))
-                      .toList(),
-                ),
-              ],
-            ),
-          ),
-          if (hasCost) ...[
-            const SizedBox(height: 12),
-            SectionCard(
-              title: 'Damage cost estimate',
-              icon: Icons.monetization_on_outlined,
-              iconColor: const Color(0xFF2E7D32),
-              child: CostEstimationSummary(photoScans: photoScans),
-            ),
-          ],
-        ],
+    if (!CostEstimationSummary.hasData(photoScans)) {
+      return const _MutedNotice(
+        icon: Icons.analytics_outlined,
+        text: "Aucune estimation IA exploitable n'est disponible.",
       );
     }
 
-    // ── Case 2: no snapshot — fallback ─────────────────────────────────────
-    return SectionCard(
-      title: 'Damage photos',
-      icon: Icons.camera_alt_outlined,
-      iconColor: Colors.orange,
-      child: photoScanIds.isEmpty
-          ? Text(
-              'No damage photos were linked to this constat.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Photo preview unavailable for this older constat.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ...photoScanIds.map(
-                  (id) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.photo_outlined,
-                          size: 14,
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.45,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            id,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontFamily: 'monospace',
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.7,
-                              ),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+    return CostEstimationSummary(photoScans: photoScans);
+  }
+}
+
+class _DecisionSection extends StatelessWidget {
+  const _DecisionSection({
+    required this.approvalStatus,
+    required this.requestedInsurance,
+    required this.requestedAt,
+    required this.ownerUid,
+    required this.approverUid,
+    required this.adminReviewStatus,
+    required this.adminReviewedAt,
+    required this.adminReviewedByUid,
+    required this.onApprove,
+    required this.isApproving,
+  });
+
+  final String approvalStatus;
+  final String? requestedInsurance;
+  final String requestedAt;
+  final String? ownerUid;
+  final String? approverUid;
+  final String? adminReviewStatus;
+  final String adminReviewedAt;
+  final String? adminReviewedByUid;
+  final VoidCallback onApprove;
+  final bool isApproving;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _InfoGrid(
+          rows: [
+            _InfoRowData('Statut parties', approvalStatus),
+            _InfoRowData(
+              'Assurance demandée',
+              _DetailBody._read(requestedInsurance),
             ),
+            _InfoRowData('Demande envoyée', requestedAt),
+            _InfoRowData('Owner UID', _DetailBody._read(ownerUid)),
+            _InfoRowData('Approver UID', _DetailBody._read(approverUid)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _AdminActionSection(
+          adminReviewStatus: adminReviewStatus,
+          adminReviewedAt: adminReviewedAt,
+          adminReviewedByUid: adminReviewedByUid,
+          onApprove: onApprove,
+          isApproving: isApproving,
+        ),
+      ],
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Admin photo thumbnail — network-only (no local file path in admin context)
-// ---------------------------------------------------------------------------
+class _AdminActionSection extends StatelessWidget {
+  const _AdminActionSection({
+    required this.adminReviewStatus,
+    required this.adminReviewedAt,
+    required this.adminReviewedByUid,
+    required this.onApprove,
+    required this.isApproving,
+  });
+
+  final String? adminReviewStatus;
+  final String adminReviewedAt;
+  final String? adminReviewedByUid;
+  final VoidCallback onApprove;
+  final bool isApproving;
+
+  bool get _isApproved => adminReviewStatus == 'approved';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_isApproved) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF7F0),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _green.withValues(alpha: 0.22)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.verified_rounded, color: _green),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Constat approuvé',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: _green,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  if (adminReviewedAt != '--')
+                    Text(
+                      'Approuvé le $adminReviewedAt',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: _green,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  if (adminReviewedByUid != null &&
+                      adminReviewedByUid!.isNotEmpty)
+                    Text(
+                      'Par $adminReviewedByUid',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: _textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return FilledButton.icon(
+      style: FilledButton.styleFrom(
+        backgroundColor: _navy,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 17, horizontal: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      onPressed: isApproving ? null : onApprove,
+      icon: isApproving
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.verified_outlined),
+      label: Text(
+        isApproving ? 'Approbation en cours...' : 'Approuver le constat',
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+      ),
+    );
+  }
+}
 
 class _AdminPhotoThumbnail extends StatelessWidget {
   const _AdminPhotoThumbnail({required this.scan});
@@ -1099,17 +1158,15 @@ class _AdminPhotoThumbnail extends StatelessWidget {
         : scan.fileUrl;
 
     return Container(
-      width: 100,
-      height: 100,
+      width: 104,
+      height: 104,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).dividerColor,
-        ),
+        color: _pageBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _cardBorder),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(17),
         child: url != null && url.isNotEmpty
             ? Image.network(
                 url,
@@ -1127,156 +1184,14 @@ class _PhotoPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Icon(
-        Icons.broken_image_outlined,
-        color: Theme.of(
-          context,
-        ).colorScheme.onSurface.withValues(alpha: 0.3),
-        size: 32,
-      ),
+    return const Center(
+      child: Icon(Icons.broken_image_outlined, color: _textMuted, size: 30),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Admin final approval action section
-// ---------------------------------------------------------------------------
-
-class _AdminActionSection extends StatelessWidget {
-  const _AdminActionSection({
-    required this.adminReviewStatus,
-    required this.adminReviewedAt,
-    required this.adminReviewedByUid,
-    required this.onApprove,
-    required this.isApproving,
-    required this.isDark,
-    required this.theme,
-  });
-
-  final String? adminReviewStatus;
-  final String adminReviewedAt;
-  final String? adminReviewedByUid;
-  final VoidCallback onApprove;
-  final bool isApproving;
-  final bool isDark;
-  final ThemeData theme;
-
-  bool get _isApproved => adminReviewStatus == 'approved';
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isApproved) {
-      // green badge — final approval already done
-      return Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.green.shade900.withValues(alpha: 0.35)
-              : const Color(0xFFE8F5E9),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark
-                ? Colors.green.shade700.withValues(alpha: 0.5)
-                : Colors.green.shade200,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.verified_rounded,
-              color: isDark ? Colors.green.shade300 : Colors.green.shade700,
-              size: 32,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Final approval completed',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? Colors.green.shade300
-                          : Colors.green.shade800,
-                    ),
-                  ),
-                  if (adminReviewedAt != '--') ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      'Approved at: $adminReviewedAt',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark
-                            ? Colors.green.shade400
-                            : Colors.green.shade700,
-                      ),
-                    ),
-                  ],
-                  if (adminReviewedByUid != null &&
-                      adminReviewedByUid!.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'By: $adminReviewedByUid',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.55),
-                        fontSize: 10,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // approve button — constat accepted but not yet admin-approved
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        style: FilledButton.styleFrom(
-          backgroundColor:
-              isDark ? Colors.green.shade700 : Colors.green.shade700,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        onPressed: isApproving ? null : onApprove,
-        icon: isApproving
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(Icons.verified_outlined, color: Colors.white),
-        label: Text(
-          isApproving ? 'Approving…' : 'Approve final report',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Shared row widget
-// ---------------------------------------------------------------------------
-
-// row reusable taffichi label w value
-class _Row extends StatelessWidget {
-  const _Row(this.label, this.value);
+class _KeyValue extends StatelessWidget {
+  const _KeyValue(this.label, this.value);
 
   final String label;
   final String value;
@@ -1284,33 +1199,103 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // label
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          SizedBox(
+            width: 118,
+            child: Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: _textMuted,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-          const SizedBox(height: 3),
-
-          // value
-          Text(value, style: theme.textTheme.bodyLarge),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: _navy,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Error state
-// ---------------------------------------------------------------------------
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
+    required this.label,
+    required this.color,
+    required this.background,
+  });
 
-// widget yban ken fama error fi loading
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _MutedNotice extends StatelessWidget {
+  const _MutedNotice({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _pageBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: _textMuted),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: _textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.message, required this.onBack});
 
@@ -1320,31 +1305,35 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // error icon
-            Icon(Icons.error_outline, size: 56, color: Colors.red.shade300),
-            const SizedBox(height: 16),
-
-            // error message
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-
-            // button yarja3 lel dashboard
-            FilledButton.icon(
-              onPressed: onBack,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back to dashboard'),
-            ),
-          ],
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: _cardBorder),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 54, color: Colors.red.shade300),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(color: _navy),
+              ),
+              const SizedBox(height: 22),
+              FilledButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Retour au tableau de bord'),
+              ),
+            ],
+          ),
         ),
       ),
     );

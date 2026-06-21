@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/providers/app_session_provider.dart';
 import '../../../../core/providers/ocr_provider.dart';
 import '../../../../core/services/ocr_text_cleaner.dart';
@@ -43,12 +44,13 @@ class _ScanPermisScreenState extends ConsumerState<ScanPermisScreen> {
           Container(
             height: 240,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(28),
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(24),
             ),
             child: _selectedImage != null
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(24),
                     child: Image.file(
                       _selectedImage!,
                       fit: BoxFit.cover,
@@ -59,16 +61,30 @@ class _ScanPermisScreenState extends ConsumerState<ScanPermisScreen> {
                 : const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.credit_card_outlined, size: 52),
+                      Icon(
+                        Icons.credit_card_outlined,
+                        size: 52,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(height: 12),
-                      Text('No image selected'),
+                      Text('Aucune image selectionnee'),
                       SizedBox(height: 8),
                       Text(
-                        'Capture or import your driver license image',
+                        'Placez le document dans le cadre.',
                         textAlign: TextAlign.center,
                       ),
                     ],
                   ),
+          ),
+          const SizedBox(height: 16),
+
+          const SectionCard(
+            icon: Icons.crop_free_outlined,
+            title: 'Instruction',
+            subtitle: 'Placez le document dans le cadre.',
+            child: Text(
+              'Utilisez une photo nette, bien eclairee et sans reflet.',
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -85,7 +101,7 @@ class _ScanPermisScreenState extends ConsumerState<ScanPermisScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: AppButton(
-                  label: 'Gallery',
+                  label: 'Galerie',
                   variant: AppButtonVariant.secondary,
                   icon: Icons.photo_library_outlined,
                   onPressed: _isProcessing ? null : () => _pickImage(false),
@@ -131,9 +147,15 @@ class _ScanPermisScreenState extends ConsumerState<ScanPermisScreen> {
               children: [
                 _TipRow(Icons.wb_sunny_outlined, 'Good lighting — no shadows'),
                 SizedBox(height: 4),
-                _TipRow(Icons.crop_free_outlined, 'Place license fully inside the frame'),
+                _TipRow(
+                  Icons.crop_free_outlined,
+                  'Place license fully inside the frame',
+                ),
                 SizedBox(height: 4),
-                _TipRow(Icons.flash_off_outlined, 'Avoid flash reflection on the card'),
+                _TipRow(
+                  Icons.flash_off_outlined,
+                  'Avoid flash reflection on the card',
+                ),
                 SizedBox(height: 4),
                 _TipRow(Icons.front_hand_outlined, 'Hold the camera steady'),
               ],
@@ -179,23 +201,27 @@ class _ScanPermisScreenState extends ConsumerState<ScanPermisScreen> {
     });
 
     try {
-      ref.read(appSessionProvider.notifier).startPermisScan(source: _selectedSource);
+      ref
+          .read(appSessionProvider.notifier)
+          .startPermisScan(source: _selectedSource);
 
       final ocrService = ref.read(ocrServiceProvider);
       final rawResult = await ocrService.recognizeFromFile(image);
       final cleanedResult = OcrTextCleaner.clean(rawResult);
       final driverData = ocrService.parseDriverLicense(cleanedResult);
 
-      ref.read(appSessionProvider.notifier).completePermisScan(
-        fullName: driverData.displayName ?? '',
-        licenseNumber: driverData.licenseNumber ?? '',
-        nationalId: driverData.nationalId ?? '',
-        dateOfBirth: driverData.dateOfBirth ?? '',
-        category: driverData.category ?? '',
-        confidence: driverData.confidence,
-        debugRawText: rawResult.rawText,
-        debugCleanedText: cleanedResult.rawText,
-      );
+      ref
+          .read(appSessionProvider.notifier)
+          .completePermisScan(
+            fullName: driverData.displayName ?? '',
+            licenseNumber: driverData.licenseNumber ?? '',
+            nationalId: driverData.nationalId ?? '',
+            dateOfBirth: driverData.dateOfBirth ?? '',
+            category: driverData.category ?? '',
+            confidence: driverData.confidence,
+            debugRawText: rawResult.rawText,
+            debugCleanedText: cleanedResult.rawText,
+          );
 
       if (!mounted) return;
       context.push(RouteNames.permisResultPath);

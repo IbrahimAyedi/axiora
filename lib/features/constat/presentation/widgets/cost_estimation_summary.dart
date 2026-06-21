@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../../../core/models/document_scan.dart';
 import '../../data/models/damage_prediction.dart';
 
+const _summaryBorder = Color(0xFFD8E2EE);
+const _summaryBackground = Color(0xFFF4F7FB);
+const _summaryNavy = Color(0xFF123A63);
+const _summaryGreen = Color(0xFF1F8A5B);
+const _summaryMuted = Color(0xFF627387);
+const _summaryWarning = Color(0xFFB7791F);
+
 /// Read-only cost estimation summary derived from damage photo scans.
-///
-/// Iterates [photoScans], parses any stored cost estimation from each scan's
-/// extractedData, and renders a compact card per slot. Returns
-/// [SizedBox.shrink] silently when no scan carries valid cost data.
 class CostEstimationSummary extends StatelessWidget {
   const CostEstimationSummary({super.key, required this.photoScans});
 
   final List<DocumentScan> photoScans;
 
-  /// True when at least one scan in [scans] has parseable cost data.
   static bool hasData(List<DocumentScan> scans) {
     return scans.any(
-      (s) =>
-          _parseCostEstimation(s.extractedData?['costEstimation']) != null,
+      (scan) =>
+          _parseCostEstimation(scan.extractedData?['costEstimation']) != null,
     );
   }
 
@@ -27,11 +28,13 @@ class CostEstimationSummary extends StatelessWidget {
     final entries = <_CostEntry>[];
 
     for (final scan in photoScans) {
-      final est = _parseCostEstimation(scan.extractedData?['costEstimation']);
-      if (est != null) {
+      final estimation = _parseCostEstimation(
+        scan.extractedData?['costEstimation'],
+      );
+      if (estimation != null) {
         final label =
             scan.extractedData?['label'] as String? ?? scan.scanType.value;
-        entries.add(_CostEntry(label: label, estimation: est));
+        entries.add(_CostEntry(label: label, estimation: estimation));
       }
     }
 
@@ -40,7 +43,7 @@ class CostEstimationSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (int i = 0; i < entries.length; i++) ...[
+        for (var i = 0; i < entries.length; i++) ...[
           if (i > 0) const SizedBox(height: 12),
           _CostBlock(
             label: entries.length > 1 ? entries[i].label : null,
@@ -52,19 +55,12 @@ class CostEstimationSummary extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Internal data holder
-// ---------------------------------------------------------------------------
-
 class _CostEntry {
   const _CostEntry({required this.label, required this.estimation});
+
   final String label;
   final CostEstimation estimation;
 }
-
-// ---------------------------------------------------------------------------
-// Block widget — renders one CostEstimation
-// ---------------------------------------------------------------------------
 
 class _CostBlock extends StatelessWidget {
   const _CostBlock({required this.estimation, this.label});
@@ -75,10 +71,6 @@ class _CostBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const green = AppColors.success;
-    const bgGreen = AppColors.successLight;
-    const borderGreen = Color(0xFFBBF7D0);
-
     final vehicleText = [
       estimation.vehicleMake,
       estimation.vehicleModel,
@@ -86,100 +78,119 @@ class _CostBlock extends StatelessWidget {
     ].whereType<String>().join(' ');
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: bgGreen,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderGreen),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _summaryBorder),
+        boxShadow: [
+          BoxShadow(
+            color: _summaryNavy.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // optional slot label shown when multiple slots have estimates
-          if (label != null) ...[
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF7F0),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.payments_outlined,
+                  size: 20,
+                  color: _summaryGreen,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Estimation des réparations',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: _summaryNavy,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (label != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        label!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: _summaryMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (estimation.recommendedLevel != null)
+                _Pill(label: 'Niveau ${estimation.recommendedLevel!}'),
+            ],
+          ),
+          if (estimation.recommendedTotal != null) ...[
+            const SizedBox(height: 14),
             Text(
-              label!,
-              style: theme.textTheme.labelMedium?.copyWith(color: green),
+              '${estimation.recommendedTotal!.toStringAsFixed(0)} TND',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: _summaryGreen,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-            const SizedBox(height: 6),
           ],
-
-          // recommended total + level pill
-          if (estimation.recommendedTotal != null)
-            Row(
-              children: [
-                const Icon(
-                  Icons.monetization_on_outlined,
-                  size: 16,
-                  color: green,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '${estimation.recommendedTotal!.toStringAsFixed(0)} TND',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: green,
-                  ),
-                ),
-                if (estimation.recommendedLevel != null) ...[
-                  const SizedBox(width: 8),
-                  _Pill(label: estimation.recommendedLevel!),
-                ],
-              ],
-            ),
-
-          // bas / moyenne / haut tier options
           if (estimation.options.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
-              runSpacing: 4,
-              children: estimation.options.entries.map((e) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: borderGreen),
-                  ),
-                  child: Text(
-                    '${_cap(e.key)}: ${e.value.toStringAsFixed(0)} TND',
-                    style: theme.textTheme.labelSmall,
-                  ),
+              runSpacing: 8,
+              children: estimation.options.entries.map((entry) {
+                return _CostOption(
+                  label: _cap(entry.key),
+                  value: '${entry.value.toStringAsFixed(0)} TND',
                 );
               }).toList(),
             ),
           ],
-
-          // vehicle make / model / year
-          if (vehicleText.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              vehicleText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          const SizedBox(height: 12),
+          Text(
+            'Estimation indicative à confirmer par un expert.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: _summaryMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (vehicleText.isNotEmpty || estimation.dataSource != null) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (vehicleText.isNotEmpty)
+                  _MetaChip(
+                    icon: Icons.directions_car_outlined,
+                    label: vehicleText,
+                  ),
+                if (estimation.dataSource != null)
+                  _MetaChip(
+                    icon: Icons.dataset_outlined,
+                    label: 'Source: ${estimation.dataSource}',
+                  ),
+              ],
             ),
           ],
-
-          // data source label
-          if (estimation.dataSource != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Source: ${estimation.dataSource}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-
-          // backend warnings
           if (estimation.warnings.isNotEmpty) ...[
             const SizedBox(height: 8),
-            for (final w in estimation.warnings)
+            for (final warning in estimation.warnings)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
@@ -188,14 +199,15 @@ class _CostBlock extends StatelessWidget {
                     const Icon(
                       Icons.info_outline,
                       size: 14,
-                      color: AppColors.warning,
+                      color: _summaryWarning,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        w,
+                        warning,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.warning,
+                          color: _summaryWarning,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -209,10 +221,6 @@ class _CostBlock extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Small level badge pill
-// ---------------------------------------------------------------------------
-
 class _Pill extends StatelessWidget {
   const _Pill({required this.label});
 
@@ -221,29 +229,97 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.successLight,
+        color: const Color(0xFFEAF7F0),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _summaryGreen.withValues(alpha: 0.22)),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppColors.success,
-          fontWeight: FontWeight.w700,
+          color: _summaryGreen,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Parsing — reads camelCase keys written by CostEstimation.toJson()
-//
-// CostEstimation.fromJson() expects backend snake_case keys. The stored data
-// in DocumentScan.extractedData uses camelCase from toJson(), so we parse
-// the stored map directly without going through fromJson().
-// ---------------------------------------------------------------------------
+class _CostOption extends StatelessWidget {
+  const _CostOption({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: _summaryBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _summaryBorder),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: _summaryMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: _summaryNavy,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9F1FF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _summaryBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: _summaryNavy),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: _summaryNavy,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 CostEstimation? _parseCostEstimation(Object? raw) {
   if (raw is! Map) return null;
@@ -256,9 +332,11 @@ CostEstimation? _parseCostEstimation(Object? raw) {
     final options = <String, double>{};
     final rawOptions = json['options'];
     if (rawOptions is Map) {
-      rawOptions.forEach((key, val) {
-        final d = _toDouble(val);
-        if (d != null && d > 0) options[key.toString()] = d;
+      rawOptions.forEach((key, value) {
+        final parsed = _toDouble(value);
+        if (parsed != null && parsed > 0) {
+          options[key.toString()] = parsed;
+        }
       });
     }
 
@@ -273,7 +351,7 @@ CostEstimation? _parseCostEstimation(Object? raw) {
     final vehicleYear = rawYear is num ? rawYear.toInt() : null;
     final dataSource = json['dataSource'] as String?;
 
-    final est = CostEstimation(
+    final estimation = CostEstimation(
       recommendedTotal: recommendedTotal,
       recommendedLevel: recommendedLevel,
       options: Map.unmodifiable(options),
@@ -284,7 +362,7 @@ CostEstimation? _parseCostEstimation(Object? raw) {
       vehicleYear: vehicleYear,
     );
 
-    return est.hasEstimation ? est : null;
+    return estimation.hasEstimation ? estimation : null;
   } catch (_) {
     return null;
   }

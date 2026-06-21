@@ -7,10 +7,8 @@ import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/providers/app_session_provider.dart';
 import '../../../../../core/widgets/app_button.dart';
 import '../../../../../core/widgets/app_page_scaffold.dart';
-import '../../../../../core/widgets/section_card.dart';
 
-// widget reusable mte3 constat flow screens
-// ywarri hero section, checklist w next action button
+// Reusable intro wrapper for constat flow entry points.
 class ConstatFlowScreen extends ConsumerWidget {
   const ConstatFlowScreen({
     super.key,
@@ -41,10 +39,6 @@ class ConstatFlowScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final effectiveIconColor = iconColor ?? AppColors.primary;
-
     return AppPageScaffold(
       title: title,
       subtitle: subtitle,
@@ -54,57 +48,53 @@ class ConstatFlowScreen extends ConsumerWidget {
         children: [
           // ── Hero card ─────────────────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              gradient: isDark
-                  ? LinearGradient(
-                      colors: [
-                        theme.colorScheme.surface,
-                        theme.colorScheme.surface.withAlpha(200),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : const LinearGradient(
-                      colors: [Color(0xFFF0F4FF), Color(0xFFF8FAFF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isDark ? theme.dividerColor : AppColors.border,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1769AA), Color(0xFF0B2D4D)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0B2D4D).withValues(alpha: 0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icon in a soft rounded container
                 Container(
-                  width: 52,
-                  height: 52,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: effectiveIconColor.withAlpha(isDark ? 35 : 22),
+                    color: Colors.white.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(icon, size: 28, color: effectiveIconColor),
+                  child: Icon(icon, size: 26, color: Colors.white),
                 ),
-                const SizedBox(height: 18),
-
-                // Title
+                const SizedBox(height: 16),
                 Text(
                   title,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: theme.colorScheme.onSurface,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 8),
-
-                // Description
                 Text(
                   description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.82),
                     height: 1.55,
                   ),
                 ),
@@ -113,79 +103,112 @@ class ConstatFlowScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // ── Checklist ─────────────────────────────────────────────────────
-          SectionCard(
-            title: 'Checklist',
-            subtitle: 'Keep the draft moving with the essentials below',
-            icon: Icons.checklist_outlined,
-            iconColor: AppColors.primary,
+          // ── Checklist card ────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.07),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Column(
-              children: checklist
-                  .map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 1),
-                            child: Icon(
-                              Icons.check_circle_outline,
-                              size: 18,
-                              color: AppColors.success,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              item,
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                        ],
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.checklist_rounded,
+                        size: 16,
+                        color: AppColors.trustBlue,
                       ),
                     ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // ── Next action ───────────────────────────────────────────────────
-          SectionCard(
-            title: 'Next action',
-            icon: Icons.arrow_forward_outlined,
-            iconColor: AppColors.primary,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AppButton(
-                  label: primaryLabel,
-                  icon: Icons.arrow_forward_rounded,
-                  onPressed: () {
-                    _applyConstatStep(ref, primaryRoute);
-                    context.push(primaryRoute);
-                  },
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Ce que vous allez faire',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
                 ),
-                if (secondaryLabel != null && secondaryRoute != null) ...[
-                  const SizedBox(height: 12),
-                  AppButton(
-                    label: secondaryLabel!,
-                    icon: Icons.arrow_back_rounded,
-                    variant: AppButtonVariant.secondary,
-                    onPressed: () => context.push(secondaryRoute!),
+                const SizedBox(height: 14),
+                const Divider(height: 1),
+                const SizedBox(height: 14),
+                ...checklist.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(
+                            Icons.check_circle_rounded,
+                            size: 16,
+                            color: AppColors.success,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              color: AppColors.textPrimary,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
+          const SizedBox(height: 20),
+
+          // ── Primary action ────────────────────────────────────────────────
+          AppButton(
+            label: primaryLabel,
+            onPressed: () {
+              _applyConstatStep(ref, primaryRoute);
+              context.push(primaryRoute);
+            },
+          ),
+
+          if (secondaryLabel != null && secondaryRoute != null) ...[
+            const SizedBox(height: 12),
+            AppButton(
+              label: secondaryLabel!,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => context.push(secondaryRoute!),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-// tupdate session/draft حسب route eli user mechi leha
 void _applyConstatStep(WidgetRef ref, String route) {
   final notifier = ref.read(appSessionProvider.notifier);
 
@@ -213,7 +236,6 @@ void _applyConstatStep(WidgetRef ref, String route) {
   }
 }
 
-// trajja3 previous route حسب current route mte3 constat flow
 String? previousConstatRoute(String route) {
   switch (route) {
     case RouteNames.accidentInfoPath:

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/models/ocr_result.dart';
 import '../../../../core/providers/app_session_provider.dart';
 import '../../../../core/providers/ocr_provider.dart';
@@ -395,13 +396,10 @@ class _InsuranceInfoScreenState extends ConsumerState<InsuranceInfoScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return AppPageScaffold(
-      // title mte3 page
-      title: 'Insurance information',
-
-      // subtitle mte3 page
-      subtitle: 'Step 4 of 8',
-
-      // body mte3 page
+      title: 'Assurance',
+      subtitle: 'Informations assurance',
+      currentStep: 5,
+      totalSteps: 8,
       body: Form(
         key: _formKey,
         child: Column(
@@ -411,122 +409,118 @@ class _InsuranceInfoScreenState extends ConsumerState<InsuranceInfoScreen> {
             // section mte3 assurance Party A
             _InsuranceSectionCard(
               icon: Icons.shield_outlined,
-              title: 'My insurance information',
-              subtitle: 'Scan or enter your own insurance details.',
+              title: 'Mon assurance',
+              subtitle: 'Scannez ou saisissez vos informations d\'assurance.',
               accentColor: const Color(0xFF1565C0),
               isDark: isDark,
               theme: theme,
               isScanning: _isScanningPartyA,
-              scanLabel: 'Scan my assurance',
+              isScanned:
+                  _insuranceNumberController.text.trim().isNotEmpty ||
+                  _companyNameController.text.trim().isNotEmpty,
+              scanLabel: 'Scanner mon attestation',
               onScan: () => _chooseImageSource(isPartyA: true),
               child: Column(
                 children: [
-                  // insurance number Party A
                   AppTextInput(
-                    label: 'Insurance number',
+                    label: 'Numéro d\'assurance',
                     controller: _insuranceNumberController,
-                    validator: (v) =>
-                        Validators.requiredField(v, label: 'Insurance number'),
+                    validator: (v) => Validators.requiredField(
+                      v,
+                      label: 'Numéro d\'assurance',
+                    ),
                   ),
                   const SizedBox(height: 14),
 
-                  // company name Party A
                   AppTextInput(
-                    label: 'Company name',
+                    label: 'Compagnie d\'assurance',
                     controller: _companyNameController,
-                    validator: (v) =>
-                        Validators.requiredField(v, label: 'Company name'),
+                    validator: (v) => Validators.requiredField(
+                      v,
+                      label: 'Compagnie d\'assurance',
+                    ),
                   ),
                   const SizedBox(height: 14),
 
-                  // policy holder Party A
                   AppTextInput(
-                    label: 'Policy holder name',
+                    label: 'Nom du souscripteur',
                     controller: _policyHolderNameController,
                   ),
                   const SizedBox(height: 14),
 
-                  // policy type Party A
                   AppTextInput(
-                    label: 'Policy type',
+                    label: 'Type de contrat',
                     controller: _policyTypeController,
-                    hint: 'Optional',
+                    hint: 'Optionnel',
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // ── Section 2: Other party insurance ────────────────────────
-            // section mte3 assurance Party B
             _InsuranceSectionCard(
               icon: Icons.person_search_outlined,
-              title: 'Other party insurance',
+              title: 'Assurance de l\'autre partie',
               subtitle:
-                  'Used to identify the second party and send the approval request.',
+                  'Permet d\'identifier la seconde partie et d\'envoyer une demande d\'approbation.',
               accentColor: const Color(0xFF2E7D32),
               isDark: isDark,
               theme: theme,
               isScanning: _isScanningPartyB,
-              scanLabel: 'Scan other party assurance',
+              isScanned:
+                  _partyBInsuranceNumberController.text.trim().isNotEmpty ||
+                  _partyBCompanyNameController.text.trim().isNotEmpty,
+              scanLabel: 'Scanner l\'attestation adverse',
               onScan: () => _chooseImageSource(isPartyA: false),
               infoNote:
-                  'Leave empty if the other party is unknown — no approval request will be created.',
+                  'Laissez vide si l\'autre partie est inconnue — aucune demande d\'approbation ne sera créée.',
               child: Column(
                 children: [
-                  // insurance number Party B
                   AppTextInput(
-                    label: 'Insurance number',
+                    label: 'Numéro d\'assurance',
                     controller: _partyBInsuranceNumberController,
-                    hint: 'Optional',
+                    hint: 'Optionnel',
                   ),
                   const SizedBox(height: 14),
 
-                  // company name Party B
                   AppTextInput(
-                    label: 'Company name',
+                    label: 'Compagnie d\'assurance',
                     controller: _partyBCompanyNameController,
-                    hint: 'Optional',
+                    hint: 'Optionnel',
                   ),
                   const SizedBox(height: 14),
 
-                  // policy holder Party B
                   AppTextInput(
-                    label: 'Policy holder name',
+                    label: 'Nom du souscripteur',
                     controller: _partyBPolicyHolderNameController,
-                    hint: 'Optional',
+                    hint: 'Optionnel',
                   ),
                   const SizedBox(height: 14),
 
-                  // policy type Party B
                   AppTextInput(
-                    label: 'Policy type',
+                    label: 'Type de contrat',
                     controller: _partyBPolicyTypeController,
-                    hint: 'Optional',
+                    hint: 'Optionnel',
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // ── Next action ──────────────────────────────────────────────
-            // section mte3 next action
             SectionCard(
-              title: 'Next action',
+              title: 'Actions',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // save assurance info w continue
                   AppButton(
-                    label: 'Continue to photos and damage',
+                    label: 'Continuer vers les photos et dégâts',
                     icon: Icons.arrow_forward_rounded,
                     onPressed: _continueToPhotos,
                   ),
                   const SizedBox(height: 12),
 
-                  // back lel vehicle details
                   AppButton(
-                    label: 'Back to vehicle details',
+                    label: 'Retour aux informations véhicule',
                     icon: Icons.arrow_back_rounded,
                     variant: AppButtonVariant.secondary,
                     onPressed: () => context.push(RouteNames.vehicleInfoPath),
@@ -555,6 +549,7 @@ class _InsuranceSectionCard extends StatelessWidget {
     required this.isDark,
     required this.theme,
     required this.isScanning,
+    required this.isScanned,
     required this.scanLabel,
     required this.onScan,
     required this.child,
@@ -582,6 +577,8 @@ class _InsuranceSectionCard extends StatelessWidget {
   // true waqt OCR scan yekhdem
   final bool isScanning;
 
+  final bool isScanned;
+
   // label mte3 scan button
   final String scanLabel;
 
@@ -596,17 +593,20 @@ class _InsuranceSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusColor = isScanned ? AppColors.success : AppColors.trustBlue;
+    final statusBackground = isScanned
+        ? AppColors.successLight
+        : AppColors.primaryLight;
+
     return Container(
       // decoration mte3 card
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surface : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: accentColor.withValues(alpha: isDark ? 0.3 : 0.2),
-        ),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.border),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -616,14 +616,15 @@ class _InsuranceSectionCard extends StatelessWidget {
               children: [
                 // icon container
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: isDark ? 0.2 : 0.08),
-                    borderRadius: BorderRadius.circular(10),
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(icon, color: accentColor, size: 20),
+                  child: Icon(icon, color: AppColors.primary, size: 22),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
 
                 // title w subtitle
                 Expanded(
@@ -635,23 +636,40 @@ class _InsuranceSectionCard extends StatelessWidget {
                         title,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.onSurface,
+                          color: AppColors.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
 
                       // subtitle
                       Text(
                         subtitle,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
-                          ),
+                          color: AppColors.textSecondary,
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                      _ScanStatusChip(
+                        label: isScanned ? 'Scanne' : 'Non scanne',
+                        color: statusColor,
+                        background: statusBackground,
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 10),
+                isScanning
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.4),
+                      )
+                    : IconButton(
+                        tooltip: scanLabel,
+                        onPressed: isScanning ? null : onScan,
+                        icon: const Icon(Icons.document_scanner_outlined),
+                        color: AppColors.primary,
+                      ),
               ],
             ),
             const SizedBox(height: 14),
@@ -659,7 +677,7 @@ class _InsuranceSectionCard extends StatelessWidget {
             // Scan button
             // button ybda OCR scan
             AppButton(
-              label: isScanning ? 'Scanning...' : scanLabel,
+              label: isScanning ? 'Scan en cours...' : scanLabel,
               icon: Icons.document_scanner_outlined,
               variant: AppButtonVariant.secondary,
               onPressed: isScanning ? null : onScan,
@@ -676,7 +694,7 @@ class _InsuranceSectionCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Processing assurance image...',
+                'Traitement de l\'attestation...',
                 style: theme.textTheme.bodySmall,
                 textAlign: TextAlign.center,
               ),
@@ -733,6 +751,36 @@ class _InsuranceSectionCard extends StatelessWidget {
   }
 }
 
+class _ScanStatusChip extends StatelessWidget {
+  const _ScanStatusChip({
+    required this.label,
+    required this.color,
+    required this.background,
+  });
+
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Image source bottom sheet
 // ---------------------------------------------------------------------------
@@ -752,14 +800,13 @@ class _AssuranceSourceSheet extends StatelessWidget {
             // camera option
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take photo'),
+              title: const Text('Prendre une photo'),
               onTap: () => Navigator.of(context).pop(ImageSource.camera),
             ),
 
-            // gallery option
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
+              title: const Text('Choisir depuis la galerie'),
               onTap: () => Navigator.of(context).pop(ImageSource.gallery),
             ),
           ],

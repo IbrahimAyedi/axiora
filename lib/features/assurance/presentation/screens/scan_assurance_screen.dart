@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/router/route_names.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/providers/app_session_provider.dart';
 import '../../../../core/providers/ocr_provider.dart';
 import '../../../../core/services/ocr_text_cleaner.dart';
@@ -44,12 +45,13 @@ class _ScanAssuranceScreenState extends ConsumerState<ScanAssuranceScreen> {
           Container(
             height: 240,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(28),
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(24),
             ),
             child: _selectedImage != null
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(24),
                     child: Image.file(
                       _selectedImage!,
                       fit: BoxFit.cover,
@@ -60,16 +62,30 @@ class _ScanAssuranceScreenState extends ConsumerState<ScanAssuranceScreen> {
                 : const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.shield_outlined, size: 52),
+                      Icon(
+                        Icons.shield_outlined,
+                        size: 52,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(height: 12),
-                      Text('No image selected'),
+                      Text('Aucune image selectionnee'),
                       SizedBox(height: 8),
                       Text(
-                        'Capture or import your insurance certificate',
+                        'Placez le document dans le cadre.',
                         textAlign: TextAlign.center,
                       ),
                     ],
                   ),
+          ),
+          const SizedBox(height: 16),
+
+          const SectionCard(
+            icon: Icons.crop_free_outlined,
+            title: 'Instruction',
+            subtitle: 'Placez le document dans le cadre.',
+            child: Text(
+              'Gardez l\'attestation lisible, complete et sans reflet.',
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -86,7 +102,7 @@ class _ScanAssuranceScreenState extends ConsumerState<ScanAssuranceScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: AppButton(
-                  label: 'Gallery',
+                  label: 'Galerie',
                   variant: AppButtonVariant.secondary,
                   icon: Icons.photo_library_outlined,
                   onPressed: _isProcessing ? null : () => _pickImage(false),
@@ -132,7 +148,10 @@ class _ScanAssuranceScreenState extends ConsumerState<ScanAssuranceScreen> {
               children: [
                 _TipRow(Icons.wb_sunny_outlined, 'Good lighting — no shadows'),
                 SizedBox(height: 4),
-                _TipRow(Icons.crop_free_outlined, 'Entire document inside the frame'),
+                _TipRow(
+                  Icons.crop_free_outlined,
+                  'Entire document inside the frame',
+                ),
                 SizedBox(height: 4),
                 _TipRow(Icons.flash_off_outlined, 'Avoid flash reflection'),
                 SizedBox(height: 4),
@@ -180,24 +199,28 @@ class _ScanAssuranceScreenState extends ConsumerState<ScanAssuranceScreen> {
     });
 
     try {
-      ref.read(appSessionProvider.notifier).startAssuranceScan(source: _selectedSource);
+      ref
+          .read(appSessionProvider.notifier)
+          .startAssuranceScan(source: _selectedSource);
 
       final ocrService = ref.read(ocrServiceProvider);
       final rawResult = await ocrService.recognizeFromFile(image);
       final cleanedResult = OcrTextCleaner.clean(rawResult);
       final insuranceData = ocrService.parseInsuranceDocument(cleanedResult);
 
-      ref.read(appSessionProvider.notifier).completeAssuranceScan(
-        insuranceNumber: insuranceData.insuranceNumber ?? '',
-        companyName: insuranceData.companyName ?? '',
-        policyHolderName: insuranceData.policyHolderName ?? '',
-        policyType: insuranceData.policyType ?? '',
-        validFrom: insuranceData.validFrom ?? '',
-        validTo: insuranceData.validTo ?? '',
-        confidence: insuranceData.confidence,
-        debugRawText: rawResult.rawText,
-        debugCleanedText: cleanedResult.rawText,
-      );
+      ref
+          .read(appSessionProvider.notifier)
+          .completeAssuranceScan(
+            insuranceNumber: insuranceData.insuranceNumber ?? '',
+            companyName: insuranceData.companyName ?? '',
+            policyHolderName: insuranceData.policyHolderName ?? '',
+            policyType: insuranceData.policyType ?? '',
+            validFrom: insuranceData.validFrom ?? '',
+            validTo: insuranceData.validTo ?? '',
+            confidence: insuranceData.confidence,
+            debugRawText: rawResult.rawText,
+            debugCleanedText: cleanedResult.rawText,
+          );
 
       if (!mounted) return;
       context.push(RouteNames.assuranceResultPath);

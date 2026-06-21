@@ -39,13 +39,7 @@ class ConstatSuccessScreen extends ConsumerWidget {
     final approvalStatus = constat?.approvalStatus ?? 'none';
 
     return AppPageScaffold(
-      // title mte3 page
-      title: 'Declaration complete',
-
-      // subtitle mte3 page
-      subtitle: 'Step 8 of 8',
-
-      // body mte3 page
+      title: 'Déclaration terminée',
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -68,9 +62,8 @@ class ConstatSuccessScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // success title
                 Text(
-                  'Declaration submitted',
+                  'Déclaration soumise',
                   style: theme.textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 10),
@@ -89,23 +82,22 @@ class ConstatSuccessScreen extends ConsumerWidget {
 
           // section mte3 submission summary
           SectionCard(
-            title: 'Submission summary',
+            title: 'Récapitulatif de la soumission',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SummaryRow(
-                  'Reference number',
+                  'Numéro de référence',
                   constat?.referenceNumber ?? '--',
                 ),
                 _SummaryRow(
-                  'Status',
+                  'Statut',
                   _statusLabel(constat?.status ?? ConstatStatus.draft),
                 ),
 
-                // submitted date ken mawjoud
                 if (constat?.submittedAt != null)
                   _SummaryRow(
-                    'Submitted at',
+                    'Soumis le',
                     _formatDateTime(constat!.submittedAt!),
                   ),
               ],
@@ -115,20 +107,20 @@ class ConstatSuccessScreen extends ConsumerWidget {
 
           // section mte3 vehicle summary
           SectionCard(
-            title: 'Vehicle',
+            title: 'Véhicule',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SummaryRow(
-                  'Plate number',
+                  'Immatriculation',
                   (constat?.vehicleSnapshot?['plateNumber'] as String?) ?? '--',
                 ),
                 _SummaryRow(
-                  'Brand',
+                  'Marque',
                   (constat?.vehicleSnapshot?['brand'] as String?) ?? '--',
                 ),
                 _SummaryRow(
-                  'Model',
+                  'Modèle',
                   (constat?.vehicleSnapshot?['model'] as String?) ?? '--',
                 ),
               ],
@@ -136,20 +128,19 @@ class ConstatSuccessScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // section mte3 assurance Party A
           SectionCard(
-            title: 'My insurance (Party A)',
+            title: 'Mon assurance (Partie A)',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SummaryRow(
-                  'Company',
+                  'Compagnie',
                   (partyASnap?['companyName'] as String?) ??
                       session.mainInsuranceProfile?.companyName ??
                       '--',
                 ),
                 _SummaryRow(
-                  'Insurance number',
+                  'Numéro d\'assurance',
                   (partyASnap?['insuranceNumber'] as String?) ??
                       session.mainInsuranceProfile?.insuranceNumber ??
                       '--',
@@ -158,22 +149,20 @@ class ConstatSuccessScreen extends ConsumerWidget {
             ),
           ),
 
-          // ken fama Party B, nwarriw other party insurance w approval status
           if (hasPartyB) ...[
             const SizedBox(height: 16),
 
-            // section mte3 other party insurance
             SectionCard(
-              title: 'Other party insurance',
+              title: 'Assurance autre partie',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _SummaryRow(
-                    'Company',
+                    'Compagnie',
                     (partyBSnap['companyName'] as String?) ?? '--',
                   ),
                   _SummaryRow(
-                    'Insurance number',
+                    'Numéro d\'assurance',
                     (partyBSnap['insuranceNumber'] as String?) ?? '--',
                   ),
                 ],
@@ -181,31 +170,27 @@ class ConstatSuccessScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // section mte3 approval status
             SectionCard(
-              title: 'Approval status',
+              title: 'Statut d\'approbation',
               child: _ApprovalStatusRow(approvalStatus: approvalStatus),
             ),
           ],
           const SizedBox(height: 16),
 
-          // section mte3 next actions
           SectionCard(
-            title: 'Next action',
+            title: 'Actions',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // return lel dashboard/home
                 AppButton(
-                  label: 'Return to dashboard',
+                  label: 'Retour au tableau de bord',
                   icon: Icons.home_outlined,
                   onPressed: () => context.go(RouteNames.homePath),
                 ),
                 const SizedBox(height: 12),
 
-                // view history
                 AppButton(
-                  label: 'View history',
+                  label: 'Voir l\'historique',
                   icon: Icons.history_outlined,
                   variant: AppButtonVariant.secondary,
                   onPressed: () => context.push(RouteNames.historyPath),
@@ -237,19 +222,19 @@ class _ApprovalStatusRow extends StatelessWidget {
       case 'pending':
         icon = Icons.pending_outlined;
         color = Colors.orange.shade700;
-        label = "Pending — waiting for the other party's insurer to respond";
+        label = "En attente — l'assureur de l'autre partie n'a pas encore répondu";
       case 'accepted':
         icon = Icons.check_circle_outline;
         color = Colors.green.shade700;
-        label = "Accepted — the other party's insurer confirmed";
+        label = "Accepté — l'assureur de l'autre partie a confirmé";
       case 'rejected':
         icon = Icons.cancel_outlined;
         color = Colors.red.shade700;
-        label = "Rejected — the other party's insurer declined";
+        label = "Refusé — l'assureur de l'autre partie a décliné";
       default:
         icon = Icons.hourglass_empty_outlined;
         color = Colors.grey.shade600;
-        label = 'Sending approval request…';
+        label = 'Envoi de la demande d\'approbation…';
     }
 
     return Row(
@@ -309,24 +294,23 @@ class _SummaryRow extends StatelessWidget {
 // message mte3 success يتبدل حسب fama Party B w approval status
 String _submissionMessage(bool hasPartyB, String approvalStatus) {
   if (!hasPartyB) {
-    return 'Your constat has been saved to Firebase. You can track it in your history.';
+    return 'Votre constat a été enregistré. Vous pouvez le suivre dans votre historique.';
   }
   return switch (approvalStatus) {
     'pending' =>
-      "Your constat has been saved to Firebase. An approval request has been sent to the other party's insurer.",
+      "Votre constat a été enregistré. Une demande d'approbation a été envoyée à l'assureur de l'autre partie.",
     'accepted' =>
-      "Your constat has been accepted by the other party's insurer.",
-    'rejected' => "Your constat was rejected by the other party's insurer.",
+      "Votre constat a été accepté par l'assureur de l'autre partie.",
+    'rejected' => "Votre constat a été refusé par l'assureur de l'autre partie.",
     _ =>
-      "Your constat has been saved to Firebase. Sending approval request to the other party's insurer…",
+      "Votre constat a été enregistré. Envoi de la demande d'approbation en cours…",
   };
 }
 
-// t7awel status enum l label readable
 String _statusLabel(ConstatStatus status) {
   return switch (status) {
-    ConstatStatus.draft => 'Draft',
-    ConstatStatus.submitted => 'Submitted',
+    ConstatStatus.draft => 'Brouillon',
+    ConstatStatus.submitted => 'Soumis',
   };
 }
 

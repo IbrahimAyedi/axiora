@@ -11,6 +11,8 @@ class AppPageScaffold extends StatelessWidget {
     this.subtitle,
     this.actions,
     this.showBackButton = true,
+    this.currentStep,
+    this.totalSteps,
   });
 
   final String title;
@@ -19,16 +21,18 @@ class AppPageScaffold extends StatelessWidget {
   final List<Widget>? actions;
   final bool showBackButton;
 
+  /// When both are provided, a step progress indicator is shown below the
+  /// app bar. [subtitle] becomes the step label shown next to the step count.
+  final int? currentStep;
+  final int? totalSteps;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasSteps = currentStep != null && totalSteps != null;
 
     return Scaffold(
       appBar: AppBar(
-        // When showBackButton=false, suppress everything; when true, let the
-        // Builder inspect GoRouter's stack and only show the button if we can
-        // actually navigate back (canPop). automaticallyImplyLeading is false
-        // because we provide our own leading.
         automaticallyImplyLeading: false,
         leading: showBackButton
             ? Builder(
@@ -47,7 +51,7 @@ class AppPageScaffold extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(title),
-            if (subtitle != null)
+            if (!hasSteps && subtitle != null)
               Text(
                 subtitle!,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -57,16 +61,99 @@ class AppPageScaffold extends StatelessWidget {
           ],
         ),
         actions: actions,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: AppColors.border),
-        ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          child: body,
+        child: Column(
+          children: [
+            if (hasSteps)
+              _StepBanner(
+                current: currentStep!,
+                total: totalSteps!,
+                label: subtitle,
+              ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                child: body,
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Step progress banner ─────────────────────────────────────────────────────
+
+class _StepBanner extends StatelessWidget {
+  const _StepBanner({
+    required this.current,
+    required this.total,
+    this.label,
+  });
+
+  final int current;
+  final int total;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.background,
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Segmented progress bar
+          Row(
+            children: List.generate(total, (i) {
+              final active = i <= current - 1;
+              return Expanded(
+                child: Container(
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                  decoration: BoxDecoration(
+                    color: active ? AppColors.trustBlue : AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 7),
+          // Step label row
+          Row(
+            children: [
+              Text(
+                'Étape $current sur $total',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.trustBlue,
+                ),
+              ),
+              if (label != null) ...[
+                const Text(
+                  ' — ',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                Expanded(
+                  child: Text(
+                    label!,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -95,13 +95,10 @@ class _ConstatSignatureScreenState
   @override
   Widget build(BuildContext context) {
     return AppPageScaffold(
-      // title mte3 page
-      title: 'Signature step',
-
-      // subtitle mte3 page
-      subtitle: 'Step 7 of 8',
-
-      // body mte3 page
+      title: 'Signature',
+      subtitle: 'Confirmation et signature',
+      currentStep: 8,
+      totalSteps: 8,
       body: Form(
         key: _formKey,
         child: Column(
@@ -128,14 +125,13 @@ class _ConstatSignatureScreenState
 
                   // title
                   Text(
-                    'Signature step',
+                    'Signature',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 10),
 
-                  // description
                   Text(
-                    'This lightweight confirmation step records who is submitting the draft and whether they confirm the information is correct.',
+                    'Confirmez votre identité et attestez l\'exactitude des informations avant la soumission finale.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -145,26 +141,24 @@ class _ConstatSignatureScreenState
 
             // section mte3 signer details
             SectionCard(
-              title: 'Signer details',
+              title: 'Informations du signataire',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // signer name input
                   AppTextInput(
-                    label: 'Signer name',
+                    label: 'Nom du signataire',
                     controller: _signerNameController,
                     validator: (value) =>
-                        Validators.requiredField(value, label: 'Signer name'),
+                        Validators.requiredField(value, label: 'Nom du signataire'),
                   ),
                   const SizedBox(height: 12),
 
-                  // checkbox confirmation
                   CheckboxListTile(
                     value: _confirmed,
                     contentPadding: EdgeInsets.zero,
                     controlAffinity: ListTileControlAffinity.leading,
                     title: const Text(
-                      'I confirm that the information provided is correct',
+                      'Je confirme que les informations fournies sont exactes',
                     ),
                     onChanged: (value) {
                       // nupdatew confirmation state
@@ -180,21 +174,19 @@ class _ConstatSignatureScreenState
 
             // section mte3 next action
             SectionCard(
-              title: 'Next action',
+              title: 'Actions',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // final submit button
                   AppButton(
-                    label: 'Finish declaration',
-                    icon: Icons.arrow_forward_rounded,
+                    label: 'Soumettre la déclaration',
+                    icon: Icons.check_circle_outline_rounded,
                     onPressed: _submit,
                   ),
                   const SizedBox(height: 12),
 
-                  // back lel review screen
                   AppButton(
-                    label: 'Back to review',
+                    label: 'Retour à la vérification',
                     icon: Icons.arrow_back_rounded,
                     variant: AppButtonVariant.secondary,
                     onPressed: () => context.push(RouteNames.constatReviewPath),

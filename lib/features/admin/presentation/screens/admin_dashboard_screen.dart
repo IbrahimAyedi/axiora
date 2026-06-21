@@ -5,8 +5,13 @@ import 'package:intl/intl.dart';
 
 import '../../../../app/router/route_names.dart';
 
-// screen mte3 admin dashboard
-// ywarri platform statistics w liste mte3 accepted constats
+const _pageBackground = Color(0xFFF4F7FB);
+const _cardBorder = Color(0xFFD8E2EE);
+const _navy = Color(0xFF123A63);
+const _blue = Color(0xFF1E6BD6);
+const _green = Color(0xFF1F8A5B);
+const _amber = Color(0xFFB7791F);
+
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
@@ -15,27 +20,17 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
-  // liste mte3 constats accepted jeya mel approved_constats
   List<Map<String, dynamic>> _constats = [];
-
-  // nombre total mte3 users
   int _userCount = 0;
-
-  // loading state
   bool _loading = true;
-
-  // error message ken fama problem
   String? _error;
 
   @override
   void initState() {
     super.initState();
-
-    // ki screen tet7al, nloadiw data mte3 dashboard
     _load();
   }
 
-  // tloadi approved constats w users count mel Firestore
   Future<void> _load() async {
     if (mounted) {
       setState(() {
@@ -45,8 +40,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
 
     try {
-      // Load approved_constats and users count in parallel
-      // nloadiw constats accepted w users fi nafs wa9t
       final results = await Future.wait([
         FirebaseFirestore.instance
             .collection('approved_constats')
@@ -55,18 +48,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         FirebaseFirestore.instance.collection('users').get(),
       ]);
 
-      // result lowel fih approved_constats
       final constatSnapshot = results[0];
-
-      // result theni fih users
       final usersSnapshot = results[1];
-
-      // n7awlou docs l list mte3 maps w nzidou id mte3 document
       final constats = constatSnapshot.docs
           .map((doc) => <String, dynamic>{...doc.data(), 'id': doc.id})
           .toList();
 
-      // nupdatew state ken widget mazal mounted
       if (mounted) {
         setState(() {
           _constats = constats;
@@ -75,10 +62,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         });
       }
     } catch (e) {
-      // ken fama error fi Firestore
       if (mounted) {
         setState(() {
-          _error = 'Failed to load dashboard data: $e';
+          _error = 'Impossible de charger le tableau de bord: $e';
           _loading = false;
         });
       }
@@ -87,238 +73,214 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // true ken app fi dark mode
-    final isDark = theme.brightness == Brightness.dark;
+    final pendingCount = _constats
+        .where((c) => c['adminReviewStatus'] != 'approved')
+        .length;
+    final approvedCount = _constats
+        .where((c) => c['adminReviewStatus'] == 'approved')
+        .length;
+    final todayCount = _constats.where(_isAcceptedToday).length;
 
     return Scaffold(
-      // appbar mte3 dashboard
+      backgroundColor: _pageBackground,
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Admin Dashboard'),
-            Text('Platform overview', style: theme.textTheme.bodySmall),
-          ],
+        backgroundColor: _pageBackground,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: _navy,
+        title: const Text(
+          'Tableau de bord admin',
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
-          // button refresh ya3awed yloadi data
           IconButton(
-            icon: const Icon(Icons.refresh_outlined),
-            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Actualiser',
             onPressed: _load,
           ),
         ],
       ),
-
-      // body mte3 screen
       body: SafeArea(
         child: _loading
-            // loading indicator
             ? const Center(child: CircularProgressIndicator())
-
-            // error view ken fama problem
             : _error != null
             ? _ErrorView(message: _error!, onRetry: _load)
-
-            // content mte3 dashboard
             : RefreshIndicator(
-                // pull to refresh
                 onRefresh: _load,
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
                   children: [
-                    // ── Stats cards ───────────────────────────────────────
-                    // section mte3 platform statistics
-                    _SectionLabel(label: 'Platform statistics', theme: theme),
-                    const SizedBox(height: 12),
+                    _DashboardHeader(
+                      totalConstats: _constats.length,
+                      userCount: _userCount,
+                    ),
+                    const SizedBox(height: 18),
+                    _StatsGrid(
+                      pendingCount: pendingCount,
+                      approvedCount: approvedCount,
+                      todayCount: todayCount,
+                    ),
+                    const SizedBox(height: 26),
                     Row(
                       children: [
-                        // card mte3 total users
-                        Expanded(
-                          child: _StatCard(
-                            icon: Icons.people_outline,
-                            label: 'Total users',
-                            value: '$_userCount',
-                            color: const Color(0xFF1565C0),
-                            isDark: isDark,
+                        const Expanded(
+                          child: _SectionTitle(
+                            title: 'Constats acceptés à vérifier',
+                            subtitle: 'Dossiers prêts pour revue expert',
                           ),
                         ),
-                        const SizedBox(width: 12),
-
-                        // card mte3 approved constats
-                        Expanded(
-                          child: _StatCard(
-                            icon: Icons.check_circle_outline,
-                            label: 'Approved constats',
-                            value: '${_constats.length}',
-                            color: const Color(0xFF2E7D32),
-                            isDark: isDark,
-                          ),
-                        ),
+                        _CountPill(label: '${_constats.length} dossiers'),
                       ],
                     ),
-                    const SizedBox(height: 8),
-
-                    // Pending / rejected note
-                    // note tفسر eli pending/rejected mahomech tracked globally
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? theme.colorScheme.surface
-                            : const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.dividerColor.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 15,
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.5,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Pending and rejected constats are stored per-user '
-                              'and not tracked globally in this version.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.6,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── Constat list ──────────────────────────────────────
-                    // section mte3 latest accepted constats
-                    _SectionLabel(
-                      label: 'Latest accepted constats',
-                      theme: theme,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // ken ma famech accepted constats
+                    const SizedBox(height: 14),
                     if (_constats.isEmpty)
-                      _EmptyView(isDark: isDark)
-
-                    // sinon nwarriw liste mte3 accepted constats
+                      const _EmptyView()
                     else
-                      ...List.generate(_constats.length, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                      ..._constats.map(
+                        (data) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: _ApprovedConstatCard(
-                            data: _constats[index],
-                            isDark: isDark,
+                            data: data,
                             onTap: () {
-                              // ki admin yenzel 3la card, nemchiw lel detail screen
-                              final id =
-                                  _constats[index]['id'] as String? ?? '';
+                              final id = data['id'] as String? ?? '';
                               context.push(
                                 RouteNames.adminConstatDetailPath(id),
                               );
                             },
                           ),
-                        );
-                      }),
+                        ),
+                      ),
                   ],
                 ),
               ),
       ),
     );
   }
+
+  static bool _isAcceptedToday(Map<String, dynamic> data) {
+    final raw = data['approvalRespondedAt'] as String?;
+    if (raw == null || raw.isEmpty) return false;
+    final date = DateTime.tryParse(raw);
+    if (date == null) return false;
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+  }
 }
 
-// ---------------------------------------------------------------------------
-// Stat card
-// ---------------------------------------------------------------------------
-
-// widget ywarri statistic card
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.isDark,
+class _DashboardHeader extends StatelessWidget {
+  const _DashboardHeader({
+    required this.totalConstats,
+    required this.userCount,
   });
 
-  // icon mte3 stat
-  final IconData icon;
-
-  // label mte3 stat
-  final String label;
-
-  // value mte3 stat
-  final String value;
-
-  // couleur principale mte3 card
-  final Color color;
-
-  // true ken dark mode
-  final bool isDark;
+  final int totalConstats;
+  final int userCount;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // background color حسب theme
-    final bg = isDark ? theme.colorScheme.surface : Colors.white;
-
-    // border color حسب theme
-    final borderColor = isDark
-        ? theme.colorScheme.outline.withValues(alpha: 0.25)
-        : const Color(0xFFD7E0EA);
-
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: _cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: _navy.withValues(alpha: 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // icon box
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: isDark ? 0.2 : 0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 20),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE9F1FF),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.admin_panel_settings, color: _blue),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tableau de bord admin',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: _navy,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Constats acceptés à vérifier',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF52677C),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-
-          // value mte3 statistic
-          Text(
-            value,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: theme.colorScheme.onSurface,
-            ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _HeaderChip(
+                icon: Icons.assignment_turned_in_outlined,
+                label: '$totalConstats dossiers acceptés',
+              ),
+              _HeaderChip(
+                icon: Icons.people_alt_outlined,
+                label: '$userCount utilisateurs',
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
+        ],
+      ),
+    );
+  }
+}
 
-          // label mte3 statistic
+class _HeaderChip extends StatelessWidget {
+  const _HeaderChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: _pageBackground,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: _blue),
+          const SizedBox(width: 6),
           Text(
             label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: _navy,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -327,176 +289,279 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Constat list card
-// ---------------------------------------------------------------------------
-
-// card mte3 constat accepted fi admin list
-class _ApprovedConstatCard extends StatelessWidget {
-  const _ApprovedConstatCard({
-    required this.data,
-    required this.isDark,
-    required this.onTap,
+class _StatsGrid extends StatelessWidget {
+  const _StatsGrid({
+    required this.pendingCount,
+    required this.approvedCount,
+    required this.todayCount,
   });
 
-  // data mte3 constat
-  final Map<String, dynamic> data;
+  final int pendingCount;
+  final int approvedCount;
+  final int todayCount;
 
-  // true ken dark mode
-  final bool isDark;
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 520;
+        final cards = [
+          _StatCard(
+            icon: Icons.pending_actions_outlined,
+            label: 'En attente de validation',
+            value: pendingCount.toString(),
+            accent: _amber,
+            tint: const Color(0xFFFFF6E5),
+          ),
+          _StatCard(
+            icon: Icons.verified_outlined,
+            label: 'Approuvés',
+            value: approvedCount.toString(),
+            accent: _green,
+            tint: const Color(0xFFEAF7F0),
+          ),
+          _StatCard(
+            icon: Icons.today_outlined,
+            label: "Aujourd'hui",
+            value: todayCount.toString(),
+            accent: _blue,
+            tint: const Color(0xFFE9F1FF),
+          ),
+        ];
 
-  // action ki admin yenzel 3la card
-  final VoidCallback onTap;
+        if (isWide) {
+          return Row(
+            children: [
+              for (var i = 0; i < cards.length; i++) ...[
+                if (i > 0) const SizedBox(width: 12),
+                Expanded(child: cards[i]),
+              ],
+            ],
+          );
+        }
+
+        return Column(
+          children: [
+            for (var i = 0; i < cards.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              cards[i],
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.accent,
+    required this.tint,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color accent;
+  final Color tint;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // colors حسب theme
-    final cardColor = isDark ? theme.colorScheme.surface : Colors.white;
-    final borderColor = isDark
-        ? theme.colorScheme.outline.withValues(alpha: 0.3)
-        : const Color(0xFFD7E0EA);
+    return Container(
+      constraints: const BoxConstraints(minHeight: 120),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: tint,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: accent, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: _navy,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF52677C),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-    // basic data mte3 constat
-    final referenceNumber = data['referenceNumber'] as String? ?? '--';
-    final location = data['accidentLocation'] as String?;
-    final accidentDateRaw = data['accidentDateTime'] as String?;
-    final respondedAtRaw = data['approvalRespondedAt'] as String?;
+class _ApprovedConstatCard extends StatelessWidget {
+  const _ApprovedConstatCard({required this.data, required this.onTap});
 
-    // names mte3 Party A w Party B
-    final partyAName =
-        (data['driverSnapshot'] as Map?)?['fullName'] as String? ?? '--';
-    final partyBName =
-        (data['partyBDriverSnapshot'] as Map?)?['fullName'] as String? ?? '--';
+  final Map<String, dynamic> data;
+  final VoidCallback onTap;
 
-    // formatted dates
-    final accidentDate = accidentDateRaw != null
-        ? _fmtDate(accidentDateRaw)
-        : null;
-    final acceptedDate = respondedAtRaw != null
-        ? _fmtDate(respondedAtRaw)
-        : null;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final referenceNumber = _read(data['referenceNumber'], fallback: 'Dossier');
+    final location = _read(data['accidentLocation']);
+    final accidentDate = _fmtDate(data['accidentDateTime'] as String?);
+    final acceptedDate = _fmtDate(data['approvalRespondedAt'] as String?);
+    final partyAName = _read(
+      (data['driverSnapshot'] as Map?)?['fullName'],
+      fallback: 'Conducteur A',
+    );
+    final partyBName = _read(
+      (data['partyBDriverSnapshot'] as Map?)?['fullName'],
+      fallback: 'Conducteur B',
+    );
+    final isFinalApproved = data['adminReviewStatus'] == 'approved';
+    final estimatedCost = _extractEstimatedCost(data);
 
     return Material(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(20),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(26),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(26),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: borderColor),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: _cardBorder),
+            boxShadow: [
+              BoxShadow(
+                color: _navy.withValues(alpha: 0.04),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // status badge + arrow
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Status badge
-                  // badge accepted
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: isDark ? 0.2 : 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 13,
-                          color: isDark
-                              ? Colors.green.shade300
-                              : Colors.green.shade700,
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          'ACCEPTED',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: isDark
-                                ? Colors.green.shade300
-                                : Colors.green.shade700,
-                            letterSpacing: 0.4,
+                          referenceNumber,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: _navy,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        if (location != '--')
+                          _MetaLine(
+                            icon: Icons.location_on_outlined,
+                            text: location,
+                          ),
+                        if (accidentDate != '--')
+                          _MetaLine(
+                            icon: Icons.event_outlined,
+                            text: 'Accident: $accidentDate',
+                          ),
+                        if (acceptedDate != '--')
+                          _MetaLine(
+                            icon: Icons.task_alt_outlined,
+                            text: 'Accepté: $acceptedDate',
+                          ),
                       ],
                     ),
                   ),
-                  const Spacer(),
-
-                  // arrow lel detail
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 13,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  const SizedBox(width: 10),
+                  _StatusBadge(
+                    label: isFinalApproved ? 'Approuvé' : 'À vérifier',
+                    color: isFinalApproved ? _green : _amber,
+                    background: isFinalApproved
+                        ? const Color(0xFFEAF7F0)
+                        : const Color(0xFFFFF6E5),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-
-              // reference number
-              Text(
-                referenceNumber,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _pageBackground,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: _cardBorder),
+                ),
+                child: Column(
+                  children: [
+                    _PartyLine(label: 'A', name: partyAName, color: _blue),
+                    const SizedBox(height: 8),
+                    _PartyLine(label: 'B', name: partyBName, color: _green),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-
-              // accident location
-              if (location != null) ...[
-                _Meta(
-                  icon: Icons.location_on_outlined,
-                  text: location,
-                  theme: theme,
-                ),
-                const SizedBox(height: 4),
-              ],
-
-              // accident date
-              if (accidentDate != null) ...[
-                _Meta(
-                  icon: Icons.event_outlined,
-                  text: 'Accident: $accidentDate',
-                  theme: theme,
-                ),
-                const SizedBox(height: 4),
-              ],
-
-              // Party A name
-              _Meta(
-                icon: Icons.person_outline,
-                text: 'Party A: $partyAName',
-                theme: theme,
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: estimatedCost == null
+                        ? Text(
+                            'Coût estimé non disponible',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF6B7D90),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : _CostPill(value: estimatedCost),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: onTap,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _navy,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: const Icon(Icons.manage_search_outlined, size: 18),
+                    label: const Text(
+                      'Examiner',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-
-              // Party B name
-              _Meta(
-                icon: Icons.person_outline,
-                text: 'Party B: $partyBName',
-                theme: theme,
-              ),
-
-              // accepted date
-              if (acceptedDate != null) ...[
-                const SizedBox(height: 4),
-                _Meta(
-                  icon: Icons.task_alt,
-                  text: 'Accepted: $acceptedDate',
-                  theme: theme,
-                ),
-              ],
             ],
           ),
         ),
@@ -504,48 +569,83 @@ class _ApprovedConstatCard extends StatelessWidget {
     );
   }
 
-  // tformat date string l yyyy-MM-dd HH:mm
-  static String _fmtDate(String raw) {
+  static String _read(Object? value, {String fallback = '--'}) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? fallback : text;
+  }
+
+  static String _fmtDate(String? raw) {
+    if (raw == null || raw.isEmpty) return '--';
     final dt = DateTime.tryParse(raw);
     if (dt == null) return raw;
     return DateFormat('yyyy-MM-dd HH:mm').format(dt);
   }
+
+  static String? _extractEstimatedCost(Map<String, dynamic> data) {
+    final scans = data['photoScansSnapshot'];
+    if (scans is! List) return null;
+
+    double total = 0;
+    for (final scan in scans) {
+      if (scan is! Map) continue;
+      final extracted = scan['extractedData'];
+      if (extracted is! Map) continue;
+      final cost = extracted['costEstimation'];
+      if (cost is! Map) continue;
+      final value = _toDouble(cost['recommendedTotal']);
+      if (value != null && value > 0) total += value;
+    }
+
+    if (total <= 0) return null;
+    return '${NumberFormat.decimalPattern('fr').format(total.round())} TND';
+  }
+
+  static double? _toDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
 }
 
-// row sghira mte3 metadata fi card
-class _Meta extends StatelessWidget {
-  const _Meta({required this.icon, required this.text, required this.theme});
+class _PartyLine extends StatelessWidget {
+  const _PartyLine({
+    required this.label,
+    required this.name,
+    required this.color,
+  });
 
-  // icon mte3 meta info
-  final IconData icon;
-
-  // text mte3 meta info
-  final String text;
-
-  // theme mte3 app
-  final ThemeData theme;
+  final String label;
+  final String name;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // icon
-        Icon(
-          icon,
-          size: 14,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+        Container(
+          width: 26,
+          height: 26,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(color: color, fontWeight: FontWeight.w900),
+          ),
         ),
-        const SizedBox(width: 6),
-
-        // text
+        const SizedBox(width: 10),
         Expanded(
           child: Text(
-            text,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
-            ),
+            name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: _navy,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -553,75 +653,29 @@ class _Meta extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Section label
-// ---------------------------------------------------------------------------
+class _MetaLine extends StatelessWidget {
+  const _MetaLine({required this.icon, required this.text});
 
-// title sghir mte3 section
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label, required this.theme});
-
-  // label mte3 section
-  final String label;
-
-  // theme mte3 app
-  final ThemeData theme;
+  final IconData icon;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: theme.textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w700,
-        color: theme.colorScheme.onSurface,
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Empty / error states
-// ---------------------------------------------------------------------------
-
-// widget yban ki ma famech accepted constats
-class _EmptyView extends StatelessWidget {
-  const _EmptyView({required this.isDark});
-
-  // true ken dark mode
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 48),
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
         children: [
-          // empty icon
-          Icon(
-            Icons.inbox_outlined,
-            size: 56,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-
-          // empty title
-          Text(
-            'No accepted constats yet',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // empty description
-          Text(
-            'Constats accepted by both parties will appear here.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+          Icon(icon, size: 15, color: const Color(0xFF6B7D90)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF52677C),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -630,44 +684,216 @@ class _EmptyView extends StatelessWidget {
   }
 }
 
-// widget yban ken dashboard loading failed
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({
+    required this.label,
+    required this.color,
+    required this.background,
+  });
+
+  final String label;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _CostPill extends StatelessWidget {
+  const _CostPill({required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF7F0),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _green.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.payments_outlined, size: 17, color: _green),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: _green,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: _navy,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: const Color(0xFF6B7D90),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CountPill extends StatelessWidget {
+  const _CountPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: _navy,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyView extends StatelessWidget {
+  const _EmptyView();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 44),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: _cardBorder),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE9F1FF),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(Icons.fact_check_outlined, color: _blue),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Aucun constat à examiner',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: _navy,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Les constats acceptés par les deux parties apparaîtront ici.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF6B7D90),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.message, required this.onRetry});
 
-  // error message
   final String message;
-
-  // function retry
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // error icon
-            Icon(Icons.error_outline, size: 56, color: Colors.red.shade300),
-            const SizedBox(height: 16),
-
-            // error text
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-
-            // retry button
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: _cardBorder),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 54, color: Colors.red.shade300),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(color: _navy),
+              ),
+              const SizedBox(height: 22),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Réessayer'),
+              ),
+            ],
+          ),
         ),
       ),
     );

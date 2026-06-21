@@ -1,709 +1,1213 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../app/config/app_constants.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/models/constat.dart';
 import '../../../../core/providers/app_session_provider.dart';
 import '../../../../core/providers/notifications_provider.dart';
 
-// home screen principale
-// yبدل contenu حسب user normal wala admin
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // theme mte3 app
-    final theme = Theme.of(context);
-
-    // true ken dark mode
-    final isDark = theme.brightness == Brightness.dark;
-
-    // session state: user, constats, scans...
     final session = ref.watch(appSessionProvider);
-
-    // notifications state bech nجيبوا unread count
     final notificationsState = ref.watch(notificationsProvider);
 
-    // debug log bech nراقبو unread notifications
     debugPrint(
       'HomeScreen.build() - unreadCount: ${notificationsState.unreadCount}',
     );
 
-    // true ken user admin
     final isAdmin = session.currentUser.isAdmin;
+    final fullName = session.currentUser.fullName ?? 'Utilisateur';
+    final firstName = fullName.split(' ').first;
+    final firstLetter = firstName.isEmpty ? 'U' : firstName[0].toUpperCase();
 
-    // user name lel greeting
-    final userName = session.currentUser.fullName ?? 'User';
-
-    // first letter lel avatar
-    final firstLetter = userName.isEmpty
-        ? 'U'
-        : userName.substring(0, 1).toUpperCase();
-
-    // nombre mte3 draft constats
+    // Constat counts — computed locally, no new backend calls
     final draftCount = session.constats
-        .where((constat) => constat.status.name == 'draft')
+        .where((c) => c.status == ConstatStatus.draft)
+        .length;
+    final pendingCount = session.constats
+        .where(
+          (c) =>
+              c.status == ConstatStatus.submitted &&
+              c.approvalStatus == 'pending',
+        )
+        .length;
+    final acceptedCount = session.constats
+        .where((c) => c.approvalStatus == 'accepted')
+        .length;
+    final approvedCount = session.constats
+        .where((c) => c.adminReviewStatus == 'approved')
         .length;
 
-    // Shared AppBar actions (notifications bell + avatar)
-    // actions mte3 appbar: notifications w profile avatar
-    final appBarActions = [
-      // notification bell
-      Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () => context.push(RouteNames.notificationsPath),
-            ),
-
-            // badge mte3 unread notifications
-            if (notificationsState.unreadCount > 0)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
-                  child: Text(
-                    notificationsState.unreadCount > 9
-                        ? '9+'
-                        : '${notificationsState.unreadCount}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-          ],
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
       ),
-
-      // avatar yemchi lel profile
-      Padding(
-        padding: const EdgeInsets.only(right: 16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () => context.push(RouteNames.profilePath),
-          child: CircleAvatar(
-            radius: 18,
-            backgroundColor: isDark
-                ? theme.colorScheme.primary.withValues(alpha: 0.2)
-                : const Color(0xFFE7F0FB),
-            child: Text(
-              firstLetter,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: isDark
-                    ? theme.colorScheme.primary
-                    : const Color(0xFF124170),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ];
-
-    return Scaffold(
-      // appbar mte3 home
-      appBar: AppBar(
-        title: Text(AppConstants.appName, style: theme.textTheme.titleMedium),
-        actions: appBarActions,
-      ),
-
-      // body يتبدل حسب role
-      body: SafeArea(
-        child: isAdmin
-            ? _AdminHomeBody(userName: userName, theme: theme)
-            : _UserHomeBody(
-                session: session,
-                theme: theme,
-                isDark: isDark,
-                userName: userName,
-                draftCount: draftCount,
-              ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Admin home body
-// ---------------------------------------------------------------------------
-
-// body mte3 admin home
-class _AdminHomeBody extends StatelessWidget {
-  const _AdminHomeBody({required this.userName, required this.theme});
-
-  // esm admin
-  final String userName;
-
-  // theme mte3 app
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-      children: [
-        // Admin header banner
-        // header special lel admin
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF3A006F), Color(0xFF6A1B9A)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(28),
-          ),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // admin badge
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.admin_panel_settings,
-                          color: Colors.white,
-                          size: 13,
-                        ),
-                        SizedBox(width: 5),
-                        Text(
-                          'ADMIN',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            letterSpacing: 0.6,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              _GreetingHeader(
+                firstName: firstName,
+                firstLetter: firstLetter,
+                unreadCount: notificationsState.unreadCount,
+                isAdmin: isAdmin,
               ),
-              const SizedBox(height: 16),
-
-              // greeting lel admin
-              Text(
-                'Hello, $userName',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // description mte3 admin role
-              Text(
-                'Review accepted constats and insurance reports.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withAlpha(200),
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 28),
-
-        // actions section
-        const _SectionHeader(label: 'Actions'),
-        const SizedBox(height: 12),
-
-        // card yemchi lel admin dashboard
-        _DashboardActionCard(
-          title: 'Admin dashboard',
-          subtitle: 'View platform statistics and accepted constats.',
-          icon: Icons.admin_panel_settings_outlined,
-          accentColor: const Color(0xFF6A1B9A),
-          chipLabel: 'Admin',
-          onTap: () => context.push(RouteNames.adminDashboardPath),
-        ),
-        const SizedBox(height: 28),
-
-        // more section
-        const _SectionHeader(label: 'More'),
-        const SizedBox(height: 12),
-
-        // settings w about
-        Row(
-          children: [
-            Expanded(
-              child: _SecondaryActionTile(
-                icon: Icons.settings_outlined,
-                title: 'Settings',
-                onTap: () => context.push(RouteNames.settingsPath),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _SecondaryActionTile(
-                icon: Icons.info_outline,
-                title: 'About',
-                onTap: () => context.push(RouteNames.aboutPath),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Normal user home body (unchanged logic)
-// ---------------------------------------------------------------------------
-
-// body mte3 user normal
-class _UserHomeBody extends StatelessWidget {
-  const _UserHomeBody({
-    required this.session,
-    required this.theme,
-    required this.isDark,
-    required this.userName,
-    required this.draftCount,
-  });
-
-  // session state
-  final AppSessionState session;
-
-  // theme mte3 app
-  final ThemeData theme;
-
-  // true ken dark mode
-  final bool isDark;
-
-  // esm user
-  final String userName;
-
-  // nombre drafts
-  final int draftCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-      children: [
-        // user header banner
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0F3459), Color(0xFF1A5C96)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // greeting
-              Text(
-                'Hello, $userName',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // description
-              Text(
-                'Create and manage your accident reports.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withAlpha(200),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // stats: scans w drafts
-              Row(
-                children: [
-                  _StatChip(
-                    icon: Icons.document_scanner_outlined,
-                    label: '${session.scans.length} scans',
-                  ),
-                  const SizedBox(width: 8),
-                  _StatChip(
-                    icon: Icons.task_alt_outlined,
-                    label: '$draftCount draft${draftCount == 1 ? '' : 's'}',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 28),
-
-        // ken fama active draft, nwarriw continue draft card
-        if (session.activeConstat != null &&
-            session.activeConstat!.status == ConstatStatus.draft) ...[
-          const _SectionHeader(label: 'Continue your draft'),
-          const SizedBox(height: 12),
-          _ActiveDraftCard(constat: session.activeConstat!),
-          const SizedBox(height: 28),
-        ],
-
-        // quick actions
-        const _SectionHeader(label: 'Quick actions'),
-        const SizedBox(height: 12),
-
-        // start new constat
-        _DashboardActionCard(
-          title: 'Start new constat',
-          subtitle: 'Create a guided accident report with OCR documents.',
-          icon: Icons.assignment_outlined,
-          accentColor: const Color(0xFFF9A825),
-          chipLabel: 'Report',
-          onTap: () => context.push(RouteNames.constatIntroPath),
-        ),
-        const SizedBox(height: 10),
-
-        // history
-        _DashboardActionCard(
-          title: 'History',
-          subtitle: 'Review your saved drafts and reports.',
-          icon: Icons.history_rounded,
-          accentColor: const Color(0xFF2E7D32),
-          chipLabel: 'Archive',
-          onTap: () => context.push(RouteNames.historyPath),
-        ),
-        const SizedBox(height: 28),
-
-        // more section
-        const _SectionHeader(label: 'More'),
-        const SizedBox(height: 12),
-
-        // settings w about
-        Row(
-          children: [
-            Expanded(
-              child: _SecondaryActionTile(
-                icon: Icons.settings_outlined,
-                title: 'Settings',
-                onTap: () => context.push(RouteNames.settingsPath),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _SecondaryActionTile(
-                icon: Icons.info_outline,
-                title: 'About',
-                onTap: () => context.push(RouteNames.aboutPath),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// title sghir mte3 section
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label});
-
-  // text mte3 section
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      label,
-      style: theme.textTheme.titleMedium?.copyWith(
-        color: theme.colorScheme.onSurface,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-}
-
-// card action principale fi dashboard
-class _DashboardActionCard extends StatelessWidget {
-  const _DashboardActionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.accentColor,
-    required this.onTap,
-    this.chipLabel,
-  });
-
-  // title mte3 card
-  final String title;
-
-  // subtitle mte3 card
-  final String subtitle;
-
-  // icon mte3 action
-  final IconData icon;
-
-  // couleur principale
-  final Color accentColor;
-
-  // action ki user yenzel 3la card
-  final VoidCallback onTap;
-
-  // chip label optionnel
-  final String? chipLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // true ken dark mode
-    final isDark = theme.brightness == Brightness.dark;
-
-    // colors حسب theme
-    final cardColor = isDark ? theme.colorScheme.surface : Colors.white;
-    final borderColor = isDark
-        ? theme.colorScheme.outline.withValues(alpha: 0.3)
-        : const Color(0xFFD7E0EA);
-
-    return Material(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: borderColor),
-          ),
-          child: Row(
-            children: [
-              // icon box
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: isDark ? 0.2 : 0.06),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                alignment: Alignment.center,
-                child: Icon(icon, color: accentColor, size: 24),
-              ),
-              const SizedBox(width: 14),
-
-              // title/subtitle/chip
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        // card title
-                        Text(
-                          title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
+                child: isAdmin
+                    ? const _AdminHomeBody()
+                    : _UserHomeBody(
+                        session: session,
+                        draftCount: draftCount,
+                        pendingCount: pendingCount,
+                        acceptedCount: acceptedCount,
+                        approvedCount: approvedCount,
+                        notificationsState: notificationsState,
+                      ),
+              ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: _HomeBottomNav(
+          unreadCount: notificationsState.unreadCount,
+          isAdmin: isAdmin,
+        ),
+      ),
+    );
+  }
+}
 
-                        // chip optional
-                        if (chipLabel != null) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: accentColor.withValues(
-                                alpha: isDark ? 0.25 : 0.07,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              chipLabel!,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: accentColor,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+// ── Compact greeting header ──────────────────────────────────────────────────
+
+class _GreetingHeader extends StatelessWidget {
+  const _GreetingHeader({
+    required this.firstName,
+    required this.firstLetter,
+    required this.unreadCount,
+    required this.isAdmin,
+  });
+
+  final String firstName;
+  final String firstLetter;
+  final int unreadCount;
+  final bool isAdmin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bonjour, $firstName 👋',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isAdmin ? 'Espace administrateur' : 'Votre tableau de bord',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.primary,
+                ),
+                onPressed: () => context.push(RouteNames.notificationsPath),
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 3),
+                    alignment: Alignment.center,
+                    child: Text(
+                      unreadCount > 9 ? '9+' : '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => context.push(RouteNames.profilePath),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryLight,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                firstLetter,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.trustBlue,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+}
 
-                    // card subtitle
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.7,
+// ── Primary "Nouveau constat" card ───────────────────────────────────────────
+
+class _NewConstatCard extends StatelessWidget {
+  const _NewConstatCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push(RouteNames.constatIntroPath),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1769AA), Color(0xFF0B2D4D)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0B2D4D).withValues(alpha: 0.22),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Nouveau constat',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Déclarez un accident en quelques étapes.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.82),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.add_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Mes constats summary card ────────────────────────────────────────────────
+
+class _MesConstatsCard extends StatelessWidget {
+  const _MesConstatsCard({
+    required this.draftCount,
+    required this.pendingCount,
+    required this.acceptedCount,
+    required this.approvedCount,
+  });
+
+  final int draftCount;
+  final int pendingCount;
+  final int acceptedCount;
+  final int approvedCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = draftCount + pendingCount + acceptedCount + approvedCount;
+
+    return GestureDetector(
+      onTap: () => context.push(RouteNames.historyPath),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.07),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+              child: Row(
+                children: [
+                  const Text(
+                    'Mes constats',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (total > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 3,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                      ),
+                      child: Text(
+                        '$total au total',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.trustBlue,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-
-              // arrow icon
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ],
-          ),
+            ),
+            const Divider(height: 1, indent: 18, endIndent: 18),
+            _StatusRow(
+              icon: Icons.pending_actions_outlined,
+              label: 'En cours',
+              count: draftCount,
+              iconColor: Color(0xFFF59E0B),
+            ),
+            const Divider(height: 1, indent: 54, endIndent: 18),
+            _StatusRow(
+              icon: Icons.hourglass_top_outlined,
+              label: 'En attente conducteur B',
+              count: pendingCount,
+              iconColor: AppColors.trustBlue,
+            ),
+            const Divider(height: 1, indent: 54, endIndent: 18),
+            _StatusRow(
+              icon: Icons.check_circle_outline_rounded,
+              label: 'Acceptés',
+              count: acceptedCount,
+              iconColor: AppColors.success,
+            ),
+            const Divider(height: 1, indent: 54, endIndent: 18),
+            _StatusRow(
+              icon: Icons.verified_outlined,
+              label: 'Approuvés / Terminés',
+              count: approvedCount,
+              iconColor: AppColors.primary,
+            ),
+            const SizedBox(height: 4),
+          ],
         ),
       ),
     );
   }
 }
 
-// tile secondaire kif settings/about
-class _SecondaryActionTile extends StatelessWidget {
-  const _SecondaryActionTile({
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({
     required this.icon,
-    required this.title,
+    required this.label,
+    required this.count,
+    required this.iconColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final int count;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 15, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Text(
+            '$count',
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Mes documents card ───────────────────────────────────────────────────────
+
+class _MesDocumentsCard extends StatelessWidget {
+  const _MesDocumentsCard({required this.scanCount});
+
+  final int scanCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push(RouteNames.scanPath),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.07),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.document_scanner_outlined,
+                size: 22,
+                color: AppColors.trustBlue,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Mes documents',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Documents OCR et photos ajoutés',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              child: Text(
+                '$scanCount scan${scanCount == 1 ? '' : 's'}',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.trustBlue,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Notifications preview card ───────────────────────────────────────────────
+
+class _NotificationsPreviewCard extends StatelessWidget {
+  const _NotificationsPreviewCard({required this.notificationsState});
+
+  final NotificationsState notificationsState;
+
+  @override
+  Widget build(BuildContext context) {
+    final notifications = notificationsState.notifications;
+    final latest = notifications.isNotEmpty ? notifications.first : null;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 12, 12),
+            child: Row(
+              children: [
+                const Text(
+                  'Notifications',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => context.push(RouteNames.notificationsPath),
+                  child: const Text(
+                    'Voir tout',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.trustBlue,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
+          ),
+          const Divider(height: 1, indent: 18, endIndent: 18),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+            child: latest == null
+                ? const Row(
+                    children: [
+                      Icon(
+                        Icons.notifications_none_outlined,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Vous n\'avez aucune notification récente.',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.notifications_outlined,
+                          size: 18,
+                          color: AppColors.trustBlue,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              latest.title,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              latest.body,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Quick link tile ──────────────────────────────────────────────────────────
+
+class _QuickTile extends StatelessWidget {
+  const _QuickTile({
+    required this.icon,
+    required this.label,
     required this.onTap,
   });
 
-  // icon mte3 tile
   final IconData icon;
-
-  // title mte3 tile
-  final String title;
-
-  // action ki user yenzel
+  final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // true ken dark mode
-    final isDark = theme.brightness == Brightness.dark;
-
-    // colors حسب theme
-    final cardColor = isDark ? theme.colorScheme.surface : Colors.white;
-    final borderColor = isDark
-        ? theme.colorScheme.outline.withValues(alpha: 0.3)
-        : const Color(0xFFD7E0EA);
-
-    return Material(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: borderColor),
-          ),
-          child: Row(
-            children: [
-              // icon
-              Icon(
-                icon,
-                size: 20,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 22, color: AppColors.trustBlue),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
               ),
-              const SizedBox(width: 10),
-
-              // title
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// chip sghira taffichi stat fi header
-class _StatChip extends StatelessWidget {
-  const _StatChip({required this.icon, required this.label});
+// ── User home body ───────────────────────────────────────────────────────────
 
-  // icon mte3 stat
+class _UserHomeBody extends StatelessWidget {
+  const _UserHomeBody({
+    required this.session,
+    required this.draftCount,
+    required this.pendingCount,
+    required this.acceptedCount,
+    required this.approvedCount,
+    required this.notificationsState,
+  });
+
+  final AppSessionState session;
+  final int draftCount;
+  final int pendingCount;
+  final int acceptedCount;
+  final int approvedCount;
+  final NotificationsState notificationsState;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+      children: [
+        const _NewConstatCard(),
+        const SizedBox(height: 14),
+
+        if (session.activeConstat != null &&
+            session.activeConstat!.status == ConstatStatus.draft) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _ActiveDraftCard(constat: session.activeConstat!),
+          ),
+          const SizedBox(height: 14),
+        ],
+
+        _MesConstatsCard(
+          draftCount: draftCount,
+          pendingCount: pendingCount,
+          acceptedCount: acceptedCount,
+          approvedCount: approvedCount,
+        ),
+        const SizedBox(height: 14),
+
+        _MesDocumentsCard(scanCount: session.scans.length),
+        const SizedBox(height: 14),
+
+        _NotificationsPreviewCard(notificationsState: notificationsState),
+        const SizedBox(height: 14),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: _QuickTile(
+                  icon: Icons.settings_outlined,
+                  label: 'Paramètres',
+                  onTap: () => context.push(RouteNames.settingsPath),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _QuickTile(
+                  icon: Icons.info_outline_rounded,
+                  label: 'À propos',
+                  onTap: () => context.push(RouteNames.aboutPath),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _QuickTile(
+                  icon: Icons.person_outline_rounded,
+                  label: 'Profil',
+                  onTap: () => context.push(RouteNames.profilePath),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Admin home body ──────────────────────────────────────────────────────────
+
+class _AdminHomeBody extends StatelessWidget {
+  const _AdminHomeBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: GestureDetector(
+            onTap: () => context.push(RouteNames.adminDashboardPath),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF071D33), Color(0xFF1769AA)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0B2D4D).withValues(alpha: 0.22),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.admin_panel_settings,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'ADMIN',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Tableau de bord admin',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Consulter les constats en attente d\'approbation.',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.80),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: _AdminQuickTile(
+                  icon: Icons.folder_open_rounded,
+                  label: 'Dossiers à examiner',
+                  accentColor: AppColors.warning,
+                  onTap: () => context.push(RouteNames.adminDashboardPath),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _AdminQuickTile(
+                  icon: Icons.people_alt_outlined,
+                  label: 'Utilisateurs',
+                  accentColor: AppColors.trustBlue,
+                  onTap: () => context.push(RouteNames.adminUsersPath),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _AdminQuickTile(
+                  icon: Icons.verified_rounded,
+                  label: 'Rapports approuvés',
+                  accentColor: AppColors.success,
+                  onTap: () =>
+                      context.push(RouteNames.adminApprovedReportsPath),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Admin quick tile (role-specific variant) ─────────────────────────────────
+
+class _AdminQuickTile extends StatelessWidget {
+  const _AdminQuickTile({
+    required this.icon,
+    required this.label,
+    required this.accentColor,
+    required this.onTap,
+  });
+
   final IconData icon;
-
-  // label mte3 stat
   final String label;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: accentColor.withValues(alpha: 0.18),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.07),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 18, color: accentColor),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Bottom navigation bar ────────────────────────────────────────────────────
+
+class _HomeBottomNav extends StatelessWidget {
+  const _HomeBottomNav({required this.unreadCount, required this.isAdmin});
+
+  final int unreadCount;
+  final bool isAdmin;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(20),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // icon
-          Icon(icon, color: Colors.white, size: 14),
-          const SizedBox(width: 6),
-
-          // label
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withAlpha(220),
-              letterSpacing: 0.2,
-            ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x140B2D4D),
+            blurRadius: 12,
+            offset: Offset(0, -2),
           ),
         ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: isAdmin
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavItem(
+                      icon: Icons.home_outlined,
+                      activeIcon: Icons.home_rounded,
+                      label: 'Accueil',
+                      isSelected: true,
+                      onTap: () {},
+                    ),
+                    _NavItem(
+                      icon: Icons.people_alt_outlined,
+                      activeIcon: Icons.people_alt,
+                      label: 'Utilisateurs',
+                      onTap: () => context.push(RouteNames.adminUsersPath),
+                    ),
+                    _NavItem(
+                      icon: Icons.notifications_outlined,
+                      activeIcon: Icons.notifications,
+                      label: 'Alertes',
+                      badge: unreadCount,
+                      onTap: () => context.push(RouteNames.notificationsPath),
+                    ),
+                    _NavItem(
+                      icon: Icons.person_outline_rounded,
+                      activeIcon: Icons.person_rounded,
+                      label: 'Profil',
+                      onTap: () => context.push(RouteNames.profilePath),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavItem(
+                      icon: Icons.home_outlined,
+                      activeIcon: Icons.home_rounded,
+                      label: 'Accueil',
+                      isSelected: true,
+                      onTap: () {},
+                    ),
+                    _NavItem(
+                      icon: Icons.assignment_outlined,
+                      activeIcon: Icons.assignment,
+                      label: 'Constats',
+                      onTap: () => context.push(RouteNames.historyPath),
+                    ),
+                    _NavItem(
+                      icon: Icons.document_scanner_outlined,
+                      activeIcon: Icons.document_scanner,
+                      label: 'Scanner',
+                      onTap: () => context.push(RouteNames.scanPath),
+                    ),
+                    _NavItem(
+                      icon: Icons.notifications_outlined,
+                      activeIcon: Icons.notifications,
+                      label: 'Alertes',
+                      badge: unreadCount,
+                      onTap: () => context.push(RouteNames.notificationsPath),
+                    ),
+                    _NavItem(
+                      icon: Icons.person_outline_rounded,
+                      activeIcon: Icons.person_rounded,
+                      label: 'Profil',
+                      onTap: () => context.push(RouteNames.profilePath),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
 }
 
-// card mte3 active draft
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.onTap,
+    this.isSelected = false,
+    this.badge = 0,
+  });
+
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isSelected;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isSelected ? AppColors.primary : AppColors.textSecondary;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(isSelected ? activeIcon : icon, size: 24, color: color),
+                if (badge > 0)
+                  Positioned(
+                    right: -5,
+                    top: -4,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: const BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        badge > 9 ? '9+' : '$badge',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 7,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Active draft card (business logic unchanged) ─────────────────────────────
+
 class _ActiveDraftCard extends ConsumerWidget {
   const _ActiveDraftCard({required this.constat});
 
-  // active draft constat
   final Constat constat;
 
   void _showDiscardDialog(BuildContext context, WidgetRef ref) {
@@ -736,16 +1240,12 @@ class _ActiveDraftCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    // true ken dark mode
     final isDark = theme.brightness == Brightness.dark;
 
-    // n7sbou wa9teh last updated
     final now = DateTime.now();
     final updatedAt = constat.updatedAt;
     final difference = now.difference(updatedAt);
 
-    // Format time ago
-    // nformatou updatedAt b time ago
     String timeAgo;
     if (difference.inMinutes < 1) {
       timeAgo = 'Just now';
@@ -759,8 +1259,6 @@ class _ActiveDraftCard extends ConsumerWidget {
           '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
     }
 
-    // Determine current step based on what's filled
-    // nحددou next step حسب chnowa t3abba fil draft
     String currentStep;
     String nextRoute;
     if (constat.driverSnapshot == null) {
@@ -785,8 +1283,6 @@ class _ActiveDraftCard extends ConsumerWidget {
       nextRoute = RouteNames.constatReviewPath;
     }
 
-    // Colors that adapt to theme
-    // colors حسب theme
     final cardColor = isDark
         ? theme.colorScheme.surface
         : const Color(0xFFFFF8E1);
@@ -810,10 +1306,8 @@ class _ActiveDraftCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // status w updated time
             Row(
               children: [
-                // in progress badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -834,8 +1328,6 @@ class _ActiveDraftCard extends ConsumerWidget {
                   ),
                 ),
                 const Spacer(),
-
-                // time ago
                 Text(
                   timeAgo,
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -846,10 +1338,8 @@ class _ActiveDraftCard extends ConsumerWidget {
             ),
             const SizedBox(height: 14),
 
-            // draft reference w current step
             Row(
               children: [
-                // icon box
                 Container(
                   width: 48,
                   height: 48,
@@ -865,13 +1355,10 @@ class _ActiveDraftCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 14),
-
-                // reference number w step
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // reference
                       Text(
                         constat.referenceNumber,
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -880,8 +1367,6 @@ class _ActiveDraftCard extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-
-                      // current step
                       Text(
                         currentStep,
                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -897,10 +1382,8 @@ class _ActiveDraftCard extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // action buttons: discard (left) + continue (right)
             Row(
               children: [
-                // discard draft — subtle danger text button
                 TextButton(
                   onPressed: () => _showDiscardDialog(context, ref),
                   style: TextButton.styleFrom(
@@ -913,8 +1396,6 @@ class _ActiveDraftCard extends ConsumerWidget {
                   child: const Text('Discard draft'),
                 ),
                 const SizedBox(width: 8),
-
-                // continue — primary amber button
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => context.push(nextRoute),

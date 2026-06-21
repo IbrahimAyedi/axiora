@@ -35,6 +35,8 @@ abstract final class RouteNames {
   static const notifications = 'notifications';
   static const adminDashboard = 'admin-dashboard';
   static const adminConstatDetail = 'admin-constat-detail';
+  static const adminUsers = 'admin-users';
+  static const adminApprovedReports = 'admin-approved-reports';
 
   // paths mte3 routes, houma URLs eli yesta3melhom GoRouter
   static const splashPath = '/';
@@ -68,6 +70,8 @@ abstract final class RouteNames {
   static const constatSuccessPath = '/constat/success';
   static const notificationsPath = '/notifications';
   static const adminDashboardPath = '/admin';
+  static const adminUsersPath = '/admin/users';
+  static const adminApprovedReportsPath = '/admin/approved-reports';
   // function ta3mel path mte3 detail constat
   // ownerUid optionnel, nesta3mlouh ki User B yhel constat mte3 User A
   static String constatDetailPath(String id, {String? ownerUid}) {
@@ -76,6 +80,7 @@ abstract final class RouteNames {
     }
     return '/history/constat/$id';
   }
+
   // function ta3mel path mte3 partyB info
   // ownerUid y5alli app ta3ref constat taba3 ay user
   static String partyBInfoPath(String constatId, {String? ownerUid}) {
@@ -84,6 +89,7 @@ abstract final class RouteNames {
     }
     return '/history/constat/$constatId/party-b-info';
   }
+
   // function ta3mel path mte3 admin detail constat
   static String adminConstatDetailPath(String id) => '/admin/constat/$id';
 }
