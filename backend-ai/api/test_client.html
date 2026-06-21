@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Car Damage API Test</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #17202a;
+      --muted: #5d6b78;
+      --line: #d7dde3;
+      --accent: #0b6bcb;
+      --accent-strong: #084f96;
+      --ok: #1c7c46;
+      --warn: #b54708;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 32px auto;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .toolbar,
+    .result,
+    .json-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1.5fr 120px 1fr auto;
+      gap: 12px;
+      align-items: end;
+      padding: 16px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="file"] {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+      padding: 8px 10px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    button {
+      min-height: 40px;
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 0 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--accent-strong);
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    .status {
+      min-height: 24px;
+      margin: 14px 0;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .status.err {
+      color: var(--warn);
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .result {
+      overflow: hidden;
+    }
+
+    .result img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: contain;
+      background: #e9edf1;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .result-body {
+      padding: 12px;
+    }
+
+    .result-title {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .json-box {
+      margin-top: 16px;
+      padding: 14px;
+      overflow: auto;
+      max-height: 420px;
+      font-size: 13px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 800px) {
+      main {
+        width: min(100% - 20px, 640px);
+        margin: 20px auto;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Car Damage API Test</h1>
+
+    <form id="uploadForm" class="toolbar">
+      <label>
+        API URL
+        <input id="apiUrl" type="text" value="http://127.0.0.1:5000">
+      </label>
+
+      <label>
+        Confidence
+        <input id="conf" type="number" value="0.25" min="0" max="1" step="0.01">
+      </label>
+
+      <label>
+        Images
+        <input id="images" type="file" accept="image/*" multiple required>
+      </label>
+
+      <label class="check">
+        <input id="includeBase64" type="checkbox">
+        Base64
+      </label>
+
+      <button id="submitButton" type="submit">Detect</button>
+    </form>
+
+    <div id="status" class="status"></div>
+    <section id="results" class="results"></section>
+    <pre id="jsonOutput" class="json-box"></pre>
+  </main>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const apiUrl = document.getElementById("apiUrl");
+    const conf = document.getElementById("conf");
+    const images = document.getElementById("images");
+    const includeBase64 = document.getElementById("includeBase64");
+    const submitButton = document.getElementById("submitButton");
+    const statusBox = document.getElementById("status");
+    const resultsBox = document.getElementById("results");
+    const jsonOutput = document.getElementById("jsonOutput");
+
+    function setStatus(message, type = "") {
+      statusBox.textContent = message;
+      statusBox.className = `status ${type}`;
+    }
+
+    function imageSource(result) {
+      return result.annotated_image_base64 || result.annotated_image_url;
+    }
+
+    function renderResults(data) {
+      resultsBox.innerHTML = "";
+
+      data.results.forEach((result) => {
+        const item = document.createElement("article");
+        item.className = "result";
+
+        const img = document.createElement("img");
+        img.src = imageSource(result);
+        img.alt = result.annotated_image;
+
+        const body = document.createElement("div");
+        body.className = "result-body";
+
+        const title = document.createElement("h2");
+        title.className = "result-title";
+        title.textContent = result.original_image;
+
+        const meta = document.createElement("p");
+        meta.className = "meta";
+        meta.textContent = `${result.status}. Detections: ${result.detections_count}.`;
+
+        const classes = document.createElement("p");
+        classes.className = "meta";
+        classes.textContent = Object.keys(result.classes_count).length
+          ? Object.entries(result.classes_count).map(([name, count]) => `${name}: ${count}`).join(", ")
+          : "No classes detected.";
+
+        body.append(title, meta, classes);
+        item.append(img, body);
+        resultsBox.appendChild(item);
+      });
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!images.files.length) {
+        setStatus("Choose at least one image.", "err");
+        return;
+      }
+
+      const endpoint = `${apiUrl.value.replace(/\/$/, "")}/api/predict`;
+      const body = new FormData();
+      Array.from(images.files).forEach((file) => body.append("images", file));
+      body.append("conf", conf.value || "0.25");
+      body.append("include_base64", includeBase64.checked ? "true" : "false");
+
+      submitButton.disabled = true;
+      setStatus("Processing...");
+      resultsBox.innerHTML = "";
+      jsonOutput.textContent = "";
+
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          body
+        });
+
+        const data = await response.json();
+        jsonOutput.textContent = JSON.stringify(data, null, 2);
+
+        if (!response.ok) {
+          throw new Error(data.error || `Request failed with ${response.status}`);
+        }
+
+        renderResults(data);
+        setStatus(`Done. ${data.total_detections} detection(s) across ${data.images_count} image(s).`, "ok");
+      } catch (error) {
+        setStatus(error.message, "err");
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

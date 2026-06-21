@@ -1,0 +1,5 @@
+make,model,year,part_category,query,min_price_tnd,median_price_tnd,max_price_tnd,confidence,sources_json,created_at,expires_at
+Peugeot,208,2018,phare,phare Peugeot 208 2018 prix Tunisie,0.0,0.0,0.0,low,[],2026-06-06T14:03:33.821935,2026-06-13T14:03:33.821935
+Renault,Symbol,2017,phare,phare Renault Symbol 2017 prix Tunisie,0.0,0.0,0.0,low,[],2026-06-06T14:03:34.593496,2026-06-13T14:03:34.593496
+Unknown,Unknown,0,phare,phare Unknown Unknown prix Tunisie,0.0,0.0,0.0,low,[],2026-06-06T14:03:35.280590,2026-06-13T14:03:35.280590
+Peugeot,208,2018,pneu,pneu Peugeot 208 2018 prix Tunisie,0.0,0.0,0.0,low,[],2026-06-06T14:03:35.950700,2026-06-13T14:03:35.950700

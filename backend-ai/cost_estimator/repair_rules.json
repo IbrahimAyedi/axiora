@@ -1,0 +1,32 @@
+{
+    "lamp_broken": {
+        "labor": {"bas": 60, "moyenne": 90, "haut": 120},
+        "paint": {"bas": 0, "moyenne": 0, "haut": 0},
+        "service_notes": "Prototype values for lamp replacement labor."
+    },
+    "glass_shatter": {
+        "labor": {"bas": 80, "moyenne": 120, "haut": 180},
+        "paint": {"bas": 0, "moyenne": 0, "haut": 0},
+        "service_notes": "Prototype values for glass replacement labor."
+    },
+    "tire_flat": {
+        "labor": {"bas": 30, "moyenne": 50, "haut": 80},
+        "paint": {"bas": 0, "moyenne": 0, "haut": 0},
+        "service_notes": "Prototype values for tire repair/replacement labor."
+    },
+    "scratch": {
+        "labor": {"bas": 80, "moyenne": 140, "haut": 220},
+        "paint": {"bas": 120, "moyenne": 220, "haut": 350},
+        "service_notes": "Prototype values for scratch repair labor and paint."
+    },
+    "dent": {
+        "labor": {"bas": 150, "moyenne": 250, "haut": 400},
+        "paint": {"bas": 100, "moyenne": 220, "haut": 350},
+        "service_notes": "Prototype values for dent repair labor and paint."
+    },
+    "crack": {
+        "labor": {"bas": 120, "moyenne": 220, "haut": 350},
+        "paint": {"bas": 80, "moyenne": 180, "haut": 300},
+        "service_notes": "Prototype values for crack repair labor and paint."
+    }
+}

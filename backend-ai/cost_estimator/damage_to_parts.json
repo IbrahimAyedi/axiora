@@ -1,0 +1,56 @@
+{
+    "dent": {
+        "original_names": ["dent"],
+        "internal_name": "dent",
+        "repair_strategy": "bodywork_paint",
+        "part_keywords": ["carrosserie", "pare-chocs", "aile", "porte"],
+        "needs_part": false,
+        "needs_paint": true,
+        "notes": "dent estimation depends on bodywork and paint; exact panel is not available from current YOLO classes"
+    },
+    "scratch": {
+        "original_names": ["scratch"],
+        "internal_name": "scratch",
+        "repair_strategy": "paint_labor",
+        "part_keywords": ["peinture", "carrosserie"],
+        "needs_part": false,
+        "needs_paint": true,
+        "notes": "scratch estimation is mostly labor and paint because the dataset does not identify the exact car panel"
+    },
+    "crack": {
+        "original_names": ["crack"],
+        "internal_name": "crack",
+        "repair_strategy": "mixed",
+        "part_keywords": ["pare-chocs", "pare-brise", "carrosserie"],
+        "needs_part": true,
+        "needs_paint": true,
+        "notes": "crack can mean plastic/body crack or glass crack; current dataset class alone is not enough to know exact part"
+    },
+    "glass_shatter": {
+        "original_names": ["glass shatter", "glass_shatter"],
+        "internal_name": "glass_shatter",
+        "repair_strategy": "part_replacement",
+        "part_keywords": ["pare-brise", "vitre"],
+        "needs_part": true,
+        "needs_paint": false,
+        "notes": "glass damage usually requires replacement part + labor"
+    },
+    "lamp_broken": {
+        "original_names": ["lamp broken", "lamp_broken"],
+        "internal_name": "lamp_broken",
+        "repair_strategy": "part_replacement",
+        "part_keywords": ["phare", "feu"],
+        "needs_part": true,
+        "needs_paint": false,
+        "notes": "broken lamps usually require part lookup and replacement labor"
+    },
+    "tire_flat": {
+        "original_names": ["tire flat", "tire_flat"],
+        "internal_name": "tire_flat",
+        "repair_strategy": "part_replacement",
+        "part_keywords": ["pneu"],
+        "needs_part": true,
+        "needs_paint": false,
+        "notes": "flat tire usually requires tire replacement or repair"
+    }
+}

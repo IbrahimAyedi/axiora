@@ -1,0 +1,38 @@
+{
+    "dent": {
+        "method": "bbox_area_ratio",
+        "bas_max": 0.032,
+        "moyenne_max": 0.185,
+        "notes": "Dataset p25 and p75. Note: These thresholds estimate visual severity from bbox_area_ratio using dataset percentiles. They are not real repair-cost severity labels."
+    },
+    "scratch": {
+        "method": "bbox_area_ratio",
+        "bas_max": 0.019,
+        "moyenne_max": 0.147,
+        "notes": "Dataset p25 and p75. Note: These thresholds estimate visual severity from bbox_area_ratio using dataset percentiles. They are not real repair-cost severity labels."
+    },
+    "crack": {
+        "method": "bbox_area_ratio",
+        "bas_max": 0.0036,
+        "moyenne_max": 0.0278,
+        "notes": "Dataset p25 and p75. Note: These thresholds estimate visual severity from bbox_area_ratio using dataset percentiles. They are not real repair-cost severity labels."
+    },
+    "glass_shatter": {
+        "method": "bbox_area_ratio",
+        "bas_max": 0.440,
+        "moyenne_max": 0.883,
+        "notes": "Dataset p25 and p75. Note: These thresholds estimate visual severity from bbox_area_ratio using dataset percentiles. They are not real repair-cost severity labels."
+    },
+    "lamp_broken": {
+        "method": "bbox_area_ratio",
+        "bas_max": 0.091,
+        "moyenne_max": 0.353,
+        "notes": "Dataset p25 and p75. Note: These thresholds estimate visual severity from bbox_area_ratio using dataset percentiles. They are not real repair-cost severity labels."
+    },
+    "tire_flat": {
+        "method": "bbox_area_ratio",
+        "bas_max": 0.214,
+        "moyenne_max": 0.511,
+        "notes": "Dataset p25 and p75. Note: These thresholds estimate visual severity from bbox_area_ratio using dataset percentiles. They are not real repair-cost severity labels."
+    }
+}

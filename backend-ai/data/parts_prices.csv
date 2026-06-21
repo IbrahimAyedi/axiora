@@ -1,0 +1,22 @@
+source,source_url,image_url,make,model,year,part_category,part_name,part_brand,reference,price_tnd,availability,condition,quality_level
+manual_prototype,N/A,N/A,Peugeot,208,Any,phare,phare avant gauche,Generic,N/A,250,en stock,neuf,bas
+manual_prototype,N/A,N/A,Peugeot,208,Any,phare,phare avant gauche,Valeo,N/A,450,en stock,neuf,moyenne
+manual_prototype,N/A,N/A,Peugeot,208,Any,phare,phare avant gauche,Origine Peugeot,N/A,800,en stock,neuf,haut
+manual_prototype,N/A,N/A,Mercedes-Benz,204,Any,phare,phare xénon gauche,Generic,N/A,800,en stock,neuf,bas
+manual_prototype,N/A,N/A,Mercedes-Benz,204,Any,phare,phare xénon gauche,Hella,N/A,1500,en stock,neuf,moyenne
+manual_prototype,N/A,N/A,Mercedes-Benz,204,Any,phare,phare xénon gauche,Origine MB,N/A,2800,sur commande,neuf,haut
+manual_prototype,N/A,N/A,Any,Any,Any,pneu,pneu standard 15",Triangle,N/A,120,en stock,neuf,bas
+manual_prototype,N/A,N/A,Any,Any,Any,pneu,pneu standard 16",Hankook,N/A,250,en stock,neuf,moyenne
+manual_prototype,N/A,N/A,Any,Any,Any,pneu,pneu standard 17",Michelin,N/A,450,en stock,neuf,haut
+manual_prototype,N/A,N/A,Any,Any,Any,pare-brise,pare-brise générique,Generic,N/A,300,en stock,neuf,bas
+manual_prototype,N/A,N/A,Any,Any,Any,pare-brise,pare-brise OEM,Saint-Gobain,N/A,600,en stock,neuf,moyenne
+manual_prototype,N/A,N/A,Any,Any,Any,pare-brise,pare-brise athermique,Saint-Gobain,N/A,1000,sur commande,neuf,haut
+manual_prototype,N/A,N/A,Any,Any,Any,vitre,vitre latérale,Generic,N/A,150,en stock,neuf,bas
+manual_prototype,N/A,N/A,Any,Any,Any,vitre,vitre latérale,Saint-Gobain,N/A,250,en stock,neuf,moyenne
+manual_prototype,N/A,N/A,Any,Any,Any,vitre,vitre latérale teintée,Saint-Gobain,N/A,400,en stock,neuf,haut
+manual_prototype,N/A,N/A,Any,Any,Any,pare-chocs,pare-chocs adaptable,Generic,N/A,180,en stock,neuf,bas
+manual_prototype,N/A,N/A,Any,Any,Any,pare-chocs,pare-chocs adaptable T.W,Generic,N/A,350,en stock,neuf,moyenne
+manual_prototype,N/A,N/A,Any,Any,Any,pare-chocs,pare-chocs origine,Origine,N/A,850,sur commande,neuf,haut
+manual_prototype,N/A,N/A,Any,Any,Any,peinture,peinture standard,Generic,N/A,100,en stock,N/A,bas
+manual_prototype,N/A,N/A,Any,Any,Any,peinture,peinture métallisée,Premium,N/A,250,en stock,N/A,moyenne
+manual_prototype,N/A,N/A,Any,Any,Any,peinture,peinture nacrée,Premium,N/A,400,en stock,N/A,haut

@@ -18,12 +18,11 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code
+# If you want to share VS Code settings, comment this line.
+.vscode/
 
-# Flutter/Dart/Pub related
+# Flutter / Dart / Pub
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -33,16 +32,17 @@ migrate_working_dir/
 /build/
 /coverage/
 
-# Symbolication related
+# Symbolication
 app.*.symbols
 
-# Obfuscation related
+# Obfuscation
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android Studio build artifacts
 /android/app/debug
 /android/app/profile
 /android/app/release
+
 # Secrets / local environment
 .env
 .env.*
@@ -50,3 +50,54 @@ app.*.map.json
 *.keystore
 *.jks
 key.properties
+serviceAccountKey.json
+
+# Python / AI backend
+backend-ai/.venv/
+backend-ai/venv/
+backend-ai/env/
+backend-ai/__pycache__/
+backend-ai/**/__pycache__/
+backend-ai/**/*.pyc
+backend-ai/.env
+backend-ai/.env.*
+!backend-ai/.env.example
+
+# AI generated / runtime files
+backend-ai/uploads/
+backend-ai/runs/
+backend-ai/datasets/
+backend-ai/dataset/
+backend-ai/data/raw/
+backend-ai/data/images/
+backend-ai/data/labels/
+backend-ai/*.zip
+backend-ai/*.rar
+backend-ai/*.mp4
+
+# AI datasets - do not commit
+backend-ai/CarDD_release/
+backend-ai/CarDD*/
+backend-ai/**/*CarDD*/
+
+# AI large model files
+backend-ai/*.pt
+backend-ai/**/*.pt
+backend-ai/*.onnx
+backend-ai/**/*.onnx
+backend-ai/*.engine
+backend-ai/**/*.engine
+
+# AI training outputs
+backend-ai/weights/
+backend-ai/**/weights/
+backend-ai/runs/
+
+# AI secrets
+backend-ai/serviceAccountKey.json
+
+# AI reports / generated outputs
+backend-ai/analysis_output/
+backend-ai/evaluation_outputs/
+backend-ai/*.ipynb
+backend-ai/search API.txt
